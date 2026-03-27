@@ -10,7 +10,7 @@ import {
   resetPassword,
   verifyUserOtp,
 } from "@/lib/api";
-import { normalizePhone } from "@/lib/utils";
+import { isValidIndianPhone, normalizeIndianPhone, validatePasswordStrength } from "@/lib/authValidation";
 import { makeIdempotencyKey } from "@/lib/idempotencyKey";
 import { toast } from "sonner";
 
@@ -87,9 +87,16 @@ export default function LoginFlow({ initialSteps = [] }) {
     setLoading(true);
     resetMessages();
     try {
-      const payload = { phone: normalizePhone(form.phone), purpose: "login" };
+      const phone = normalizeIndianPhone(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        throw new Error("Enter a valid 10-digit Indian phone number.");
+      }
+      if (!form.password.trim()) {
+        throw new Error("Password is required.");
+      }
+      const payload = { phone, purpose: "login" };
       const idempotencyKey = makeIdempotencyKey("auth/login", payload);
-      const data = await loginUser(normalizePhone(form.phone), form.password, { idempotencyKey });
+      const data = await loginUser(phone, form.password, { idempotencyKey });
       saveAuthCookies(data);
       toast.success("Login successful.");
       
@@ -118,9 +125,13 @@ export default function LoginFlow({ initialSteps = [] }) {
     setLoading(true);
     resetMessages();
     try {
-      const payload = { phone: normalizePhone(form.phone), purpose: "reset" };
+      const phone = normalizeIndianPhone(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        throw new Error("Enter a valid 10-digit Indian phone number.");
+      }
+      const payload = { phone, purpose: "reset" };
       const idempotencyKey = makeIdempotencyKey("auth/request-reset-otp", payload);
-      const data = await requestResetOtp(normalizePhone(form.phone), { idempotencyKey });
+      const data = await requestResetOtp(phone, { idempotencyKey });
       setDevOtp(data.devOtp || "");
       toast.success("OTP sent for password reset.");
       setMode("resetOtp");
@@ -136,9 +147,13 @@ export default function LoginFlow({ initialSteps = [] }) {
     setLoading(true);
     resetMessages();
     try {
-      const payload = { phone: normalizePhone(form.phone), otp: form.otp, purpose: "reset" };
+      const phone = normalizeIndianPhone(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        throw new Error("Enter a valid 10-digit Indian phone number.");
+      }
+      const payload = { phone, otp: form.otp, purpose: "reset" };
       const idempotencyKey = makeIdempotencyKey("auth/verify-reset-otp", payload);
-      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "reset", { idempotencyKey });
+      const data = await verifyUserOtp(phone, form.otp, "reset", { idempotencyKey });
       setVerificationToken(data.verificationToken);
       toast.success("OTP verified.");
       setMode("resetPassword");
@@ -154,8 +169,9 @@ export default function LoginFlow({ initialSteps = [] }) {
     setLoading(true);
     resetMessages();
     try {
-      if (form.newPassword.length < 6) {
-        throw new Error("Password must be at least 6 characters.");
+      const passwordError = validatePasswordStrength(form.newPassword);
+      if (passwordError) {
+        throw new Error(passwordError);
       }
       if (form.newPassword !== form.confirmPassword) {
         throw new Error("Passwords do not match.");
@@ -222,7 +238,7 @@ export default function LoginFlow({ initialSteps = [] }) {
                 maxLength={10}
                 placeholder="Enter your phone number"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: normalizePhone(e.target.value) }))}
+                onChange={(e) => setForm((f) => ({ ...f, phone: normalizeIndianPhone(e.target.value) }))}
                 className={`${INPUT_CLASS} pl-14 placeholder:text-slate-300`}
                 required
               />
@@ -274,7 +290,7 @@ export default function LoginFlow({ initialSteps = [] }) {
                 maxLength={10}
                 placeholder="9876543210"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: normalizePhone(e.target.value) }))}
+                onChange={(e) => setForm((f) => ({ ...f, phone: normalizeIndianPhone(e.target.value) }))}
                 className={`${INPUT_CLASS} pl-14`}
                 required
               />

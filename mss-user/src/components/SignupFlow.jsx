@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import AuthScene from "@/components/AuthScene";
 import { getAuthToken, getAuthUser, saveAuthCookies } from "@/lib/authCookies";
 import { requestUserOtp, signupUser, verifyUserOtp, progressiveSave } from "@/lib/api";
-import { normalizePhone, formatLakhs, slugify } from "@/lib/utils";
+import { formatLakhs, slugify } from "@/lib/utils";
+import { isValidIndianPhone, normalizeIndianPhone, validatePasswordStrength } from "@/lib/authValidation";
 import { makeIdempotencyKey } from "@/lib/idempotencyKey";
 import { toast } from "sonner";
 
@@ -138,14 +139,18 @@ export default function SignupFlow({ initialSteps = [] }) {
     setLoading(true);
     try {
       if (!form.name.trim()) throw new Error("Name is required.");
-      const requestPayload = { phone: normalizePhone(form.phone), purpose: "signup" };
+      const phone = normalizeIndianPhone(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        throw new Error("Enter a valid 10-digit Indian phone number.");
+      }
+      const requestPayload = { phone, purpose: "signup" };
       const idempotencyKey = makeIdempotencyKey("auth/request-otp", requestPayload);
-      const data = await requestUserOtp(normalizePhone(form.phone), "signup", { idempotencyKey });
+      const data = await requestUserOtp(phone, "signup", { idempotencyKey });
       setDevOtp(data.devOtp || "");
       
       // Save name and phone immediately after OTP request
       try {
-        const initialSavePayload = { name: form.name, phone: normalizePhone(form.phone) };
+        const initialSavePayload = { name: form.name, phone };
         const initialSaveKey = makeIdempotencyKey("auth/progressive-save:init", initialSavePayload);
         await progressiveSave(initialSavePayload, { idempotencyKey: initialSaveKey });
       } catch (saveErr) {
@@ -165,9 +170,13 @@ export default function SignupFlow({ initialSteps = [] }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const verifyPayload = { phone: normalizePhone(form.phone), otp: form.otp, purpose: "signup" };
+      const phone = normalizeIndianPhone(form.phone);
+      if (!isValidIndianPhone(phone)) {
+        throw new Error("Enter a valid 10-digit Indian phone number.");
+      }
+      const verifyPayload = { phone, otp: form.otp, purpose: "signup" };
       const idempotencyKey = makeIdempotencyKey("auth/verify-otp", verifyPayload);
-      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "signup", { idempotencyKey });
+      const data = await verifyUserOtp(phone, form.otp, "signup", { idempotencyKey });
       setVerificationToken(data.verificationToken);
       toast.success("Phone number verified.");
       setPhase("password");
@@ -181,8 +190,9 @@ export default function SignupFlow({ initialSteps = [] }) {
 
   function handlePasswordNext(e) {
     e.preventDefault();
-    if (form.password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+    const passwordError = validatePasswordStrength(form.password);
+    if (passwordError) {
+      toast.error(passwordError);
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -382,7 +392,7 @@ export default function SignupFlow({ initialSteps = [] }) {
               maxLength={10}
               placeholder="9876543210"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: normalizePhone(e.target.value) }))}
+              onChange={(e) => setForm((f) => ({ ...f, phone: normalizeIndianPhone(e.target.value) }))}
               className={`${INPUT_CLASS} pl-14 placeholder:text-slate-300`}
               required
             />
@@ -413,7 +423,7 @@ export default function SignupFlow({ initialSteps = [] }) {
     return (
       <AuthScene
         title="Verify your number"
-        subtitle={`Enter the OTP sent to +91 ${normalizePhone(form.phone)}`}
+        subtitle={`Enter the OTP sent to +91 ${normalizeIndianPhone(form.phone)}`}
         variant={1}
       >
         <form className="space-y-5" onSubmit={handleVerifyOtp}>

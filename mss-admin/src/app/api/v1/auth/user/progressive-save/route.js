@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";
 import { getUsersCollection } from "@/lib/db";
-import { normalizePhone, sanitizeUser, verifyVerificationToken } from "@/lib/userAuth";
+import {
+  isValidIndianPhone,
+  normalizePhone,
+  sanitizeUser,
+  validatePasswordStrength,
+  verifyVerificationToken,
+} from "@/lib/userAuth";
 
 /**
  * Progressive save endpoint - saves partial signup data at each step
@@ -23,9 +29,9 @@ export async function POST(request) {
       phone = normalizePhone(body.phone);
     }
     
-    if (!phone || phone.length < 10) {
+    if (!phone || !isValidIndianPhone(phone)) {
       return NextResponse.json(
-        { code: "BAD_REQUEST", message: "Valid phone number required" },
+        { code: "BAD_REQUEST", message: "Enter a valid 10-digit Indian phone number" },
         { status: 400 }
       );
     }
@@ -131,7 +137,14 @@ export async function POST(request) {
     }
 
     // If password is provided, this is the final save
-    if (body.password && String(body.password).length >= 6) {
+    if (body.password) {
+      const passwordValidationError = validatePasswordStrength(String(body.password));
+      if (passwordValidationError) {
+        return NextResponse.json(
+          { code: "BAD_REQUEST", message: passwordValidationError },
+          { status: 400 }
+        );
+      }
       const bcrypt = await import("bcryptjs");
       const passwordHash = await bcrypt.default.hash(String(body.password), 10);
       

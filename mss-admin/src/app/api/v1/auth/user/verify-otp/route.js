@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUsersCollection } from "@/lib/db";
-import { createVerificationToken, normalizePhone } from "@/lib/userAuth";
+import { createVerificationToken, isValidIndianPhone, normalizePhone } from "@/lib/userAuth";
 
 export async function POST(request) {
   try {
@@ -9,9 +9,9 @@ export async function POST(request) {
     const otp = String(body?.otp || "").trim();
     const purpose = body?.purpose === "reset" ? "reset" : "signup";
 
-    if (!phone || phone.length < 10 || otp.length < 4) {
+    if (!phone || !isValidIndianPhone(phone) || otp.length < 4) {
       return NextResponse.json(
-        { code: "BAD_REQUEST", message: "Phone and OTP are required" },
+        { code: "BAD_REQUEST", message: "Enter a valid phone number and OTP" },
         { status: 400 }
       );
     }

@@ -2,7 +2,13 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";
 import { getUsersCollection } from "@/lib/db";
-import { normalizePhone, sanitizeUser, verifyVerificationToken } from "@/lib/userAuth";
+import {
+  isValidIndianPhone,
+  normalizePhone,
+  sanitizeUser,
+  validatePasswordStrength,
+  verifyVerificationToken,
+} from "@/lib/userAuth";
 
 export async function POST(request) {
   try {
@@ -18,9 +24,10 @@ export async function POST(request) {
       );
     }
 
-    if (password.length < 6) {
+    const passwordValidationError = validatePasswordStrength(password);
+    if (passwordValidationError) {
       return NextResponse.json(
-        { code: "BAD_REQUEST", message: "Password must be at least 6 characters" },
+        { code: "BAD_REQUEST", message: passwordValidationError },
         { status: 400 }
       );
     }
@@ -34,6 +41,12 @@ export async function POST(request) {
 
     const decoded = verifyVerificationToken(verificationToken, "signup");
     const phone = normalizePhone(decoded.phone);
+    if (!isValidIndianPhone(phone)) {
+      return NextResponse.json(
+        { code: "BAD_REQUEST", message: "Invalid phone number. Enter a valid 10-digit Indian phone number." },
+        { status: 400 }
+      );
+    }
     const col = await getUsersCollection();
 
     const onboarding = {

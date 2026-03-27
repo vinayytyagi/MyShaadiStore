@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 const TOKEN_COOKIE = "mss_token";
 const USER_COOKIE = "mss_user";
@@ -53,28 +53,20 @@ export function getAuthUser() {
   }
 }
 
-function subscribeToAuthChanges(callback) {
-  if (typeof window === "undefined") return () => {};
-  window.addEventListener(AUTH_EVENT, callback);
-  window.addEventListener("focus", callback);
-  return () => {
-    window.removeEventListener(AUTH_EVENT, callback);
-    window.removeEventListener("focus", callback);
-  };
-}
-
-function getAuthUserSnapshot() {
-  return readCookie(USER_COOKIE) || "";
-}
-
 export function useAuthUser() {
-  const rawUser = useSyncExternalStore(subscribeToAuthChanges, getAuthUserSnapshot, () => "");
-  return useMemo(() => {
-    if (!rawUser) return null;
-    try {
-      return JSON.parse(rawUser);
-    } catch {
-      return null;
-    }
-  }, [rawUser]);
+  const [user, setUser] = useState(() => getAuthUser());
+
+  useEffect(() => {
+    const refreshAuthUser = () => setUser(getAuthUser());
+
+    window.addEventListener(AUTH_EVENT, refreshAuthUser);
+    window.addEventListener("focus", refreshAuthUser);
+
+    return () => {
+      window.removeEventListener(AUTH_EVENT, refreshAuthUser);
+      window.removeEventListener("focus", refreshAuthUser);
+    };
+  }, []);
+
+  return user;
 }

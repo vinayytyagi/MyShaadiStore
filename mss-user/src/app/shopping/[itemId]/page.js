@@ -2,7 +2,7 @@ import ShoppingItemPageServer from "@/components/server/ShoppingItemPageServer";
 import { fetchItem } from "@/lib/api";
 
 export async function generateMetadata({ params }) {
-  const { itemId } = params;
+  const { itemId } = await params;
 
   try {
     const item = await fetchItem(itemId);

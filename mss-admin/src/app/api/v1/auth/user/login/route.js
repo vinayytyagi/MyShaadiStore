@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";
 import { getUsersCollection } from "@/lib/db";
-import { normalizePhone, sanitizeUser } from "@/lib/userAuth";
+import { isValidIndianPhone, normalizePhone, sanitizeUser } from "@/lib/userAuth";
 
 export async function POST(request) {
   try {
@@ -10,9 +10,9 @@ export async function POST(request) {
     const phone = normalizePhone(body?.phone);
     const password = String(body?.password || "");
 
-    if (!phone || phone.length < 10 || !password) {
+    if (!phone || !isValidIndianPhone(phone) || !password) {
       return NextResponse.json(
-        { code: "BAD_REQUEST", message: "Phone number and password are required" },
+        { code: "BAD_REQUEST", message: "Enter a valid 10-digit phone number and password" },
         { status: 400 }
       );
     }

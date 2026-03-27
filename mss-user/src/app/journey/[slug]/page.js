@@ -2,7 +2,7 @@ import JourneySlugPageServer from "@/components/server/JourneySlugPageServer";
 import { fetchJourneyStep } from "@/lib/api";
 
 export async function generateMetadata({ params }) {
-  const { slug } = params;
+  const { slug } = await params;
 
   try {
     const step = await fetchJourneyStep(slug);
