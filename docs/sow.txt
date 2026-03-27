@@ -1,0 +1,459 @@
+MODULE 1: USER WEB APP (CUSTOMER SIDE)
+
+Feature Name
+
+Feature Description
+
+Wedding Date Selection
+
+User selects wedding date via calendar interface.
+
+Wedding Budget Entry
+
+User inputs total wedding budget (range).
+
+Smart Budget Allocation Engine
+
+System auto-distributes budget into configurable categories (venue, catering, décor, shopping, etc.).
+
+Real-Time Budget Recalculation
+
+Budget breakdown updates dynamically when user modifies total budget or guest count.
+
+Guided Wedding Journey Flow
+
+Step-by-step wedding planning journey (Venue Programs → Shopping Gifts Honeymoon).
+
+Vendor Discovery
+
+Users can browse and filter vendors by budget, location, rating, and availability
+
+Product & Service Marketplace
+
+Combined marketplace for physical products and wedding services.
+
+Advanced Smart Filters
+
+Filters based on date, location, guest count, budget range, function count, and category.
+
+Guest Count Calculator
+
+User enters guest count and system auto-estimates catering. seating, and gift needs.
+
+Venue Selection Module
+
+Filter by capacity, city, price range, and wedding date availability,
+
+Program Planner
+
+User selects wedding functions (Haldi, Mehendi, Sangeet, etc.) and sees budget breakdown per function.
+
+Invitation Marketplace
+
+Digital invites, printed cards, and premium boxes with theme and price filters.
+
+Catering & Decor Filtering
+
+Filter by per plate budget, cuisine, veg/non-veg, and décor theme.
+
+Bride & Groom Shopping Section
+
+Budget-based filtering for lehenga, sherwani, jewelry, makeup artist, accessories:
+
+Return Gift Marketplace
+
+Bulk pricing support with budget-per-gift filtering
+
+
+
+Honeymoon Suggestions
+
+Budget and location filtered honeymoon packages (domestic/international).
+
+Curated Wedding Collections
+
+etc Pre-built packages like "Wedding under 5L", "Royal Wedding 25
+
+Guest Checkout
+
+Users can checkout without mandatory account creation.
+
+Social Login
+
+Login via Google, Facebook, Apple.
+
+Order Placement
+
+Secure checkout via Razorpay (UPI, Cards, Wallets).
+
+Order Tracking
+
+Real-time order tracking via logistics API integration.
+
+Notifications
+
+Email SMS + WhatsApp notifications for orders and status updates.
+
+Wishlist
+
+Users can save products/services for later.
+
+Ratings & Reviews
+
+Customers can rate vendors and products.
+
+Abandoned Cart Recovery
+
+Automated reminder emails for incomplete purchases.
+
+PWA Support
+
+Progressive Web App for mobile-friendly experience.
+
+Push Notifications
+
+Browser push notifications for offers and updates.
+
+
+
+
+MODULE 2: VENDOR PANEL
+
+Feature Name
+
+Feature Description
+
+Vendor Registration & Approval
+
+Vendor onboarding with admin approval workflow.
+
+Vendor Dashboard
+
+Overview of orders, revenue, performance metrics.
+
+Product & Service Listing
+
+Add/edit products with variants (size, color, customization).
+
+Bulk Product Upload
+
+CSV upload for large catalog management.
+
+Inventory Management
+
+Real-time stock updates and low-stock alerts.
+
+Order Management
+
+View, accept, and process orders.
+
+Shipment Creation
+
+API integration with Shiprocket/Delhivery for label and shipment creation.
+
+Availability Management
+
+Vendors mark available/unavailable dates for wedding bookings.
+
+Vendor Promotions
+
+Create discounts and promotional offers.
+
+Vendor Analytics
+
+View conversion rate, sales performance, and revenue reports.
+
+Commission Tracking
+
+Transparent calculation of platform commission per order.
+
+Payout Management
+
+Track eamings and payment settlements.
+
+
+
+MODULE 3: ADMIN PANEL
+
+Feature Nama
+
+Feature Description
+
+Admin Dashboard
+
+Overview of total sales, vendors, orders, and revenue.
+
+Budget Allocation Control
+
+Configure percentage distribution for wedding categories.
+
+Vendor Approval & Management
+
+Approve/reject vendors and manage compliance.
+
+Commission Management
+
+Define commission structure (category-wise or vendor-wise).
+
+Category Management
+
+Create/edit wedding categories and subcategories.
+
+Package Creation
+
+Create curated wedding budget packages.
+
+Offer & Promotion Managemant
+
+Manage discount codes and campaign banners.
+
+Vendor Performance Monitoring
+
+Track vendor ratings, cancellation rates, revenue.
+
+Order Monitoring
+
+View and manage all marketplace orders.
+
+User Management
+
+Manage customer accounts and roles.
+
+Content Management
+
+Manage homepage banners and curated collections.
+
+Activity Logs
+
+Maintain logs of admin and vendor actions.
+
+Reporting & CSV Export
+
+Generate business reports and export sales/vendor data
+
+Notification Management
+
+Control automated email/SMS triggers
+
+
+
+MODULE 4: SMART BUDGET ENGINE (CORE DIFFERENTIATOR)
+
+Q
+
+Feature Name
+
+Feature Description
+
+Budget Logic Engine
+
+Core algorithm that distributes wedding budget across configurable categories.
+
+Dynamic Vendor Filtering
+
+Vendors automatically filtered within allocated category budget.
+
+Budget Upgrade Logic
+
+If budget increases, premium vendors/products appear automatically.
+
+Budget Consumption Tracker
+
+Real-time visualization of how much budget is allocated and remaining.
+
+Configurable Percentage Rules
+
+Admin-configurable allocation rules.
+
+
+
+MODULE 5: LOGISTICS & PAYMENT INTEGRATION
+
+Feature Name
+
+Feature Description
+
+Multi-Canter Integration
+
+Shiprocket, Delhivery, Blue Dart, FedEx integration
+
+Shipment Label Generation
+
+Auto label generation for vendors
+
+Tracking API Integration
+
+Live shipment tracking updates.
+
+Dynamic Shipping Fee Calculation
+
+Shipping charges based on weight and delivery location.
+
+Free Shipping Rules
+
+Configurable free shipping threshold.
+
+Raszorpay Integration
+
+UPI, cards, wallets payment support.
+
+Stripe (Ready Integration)
+
+Architecture-ready for future international payments.
+
+Fraud Monitoring
+
+Basic fraud detection via payment gateway tools.
+
+MODULE 6: SEARCH & DISCOVERY
+
+Feature Name
+
+Feature Description
+
+Full-Text Searc
+
+Elasticsearch-based advanced search.
+
+Autocomplete Suggestions
+
+Live search suggestions while typing.
+
+Advanced Filtaring
+
+Multi-parameter fiering (price, category, occasion, color, size, location)
+
+
+
+Feature Name
+
+Feature Description
+
+Sessions & Users
+
+Tracks total visits, unique users, and returning users over time.
+
+Total Sales (Daily/Weekly/Monthly)
+
+Displays revenue trends across different time periods for business tracking
+
+Payment Method Breakdown
+
+Shows revenue split by payment modes (COD, UPI, Cards, Net Banking, etc.).
+
+Traffic Source
+
+Identifies where users come from (Organic, Paid Ads, Social Media, Direct, Referrals).
+
+Cost Per Acquisition (CPA)
+
+Calculates cost spent on ads to acquire one paying customer.
+
+Conversion Rate (CR)
+
+Percentage of visitors who complete a purchase.
+
+Vendor-wise Sales & Earnings
+
+Tracks individual vendor revenue, commissions, and payouts.
+
+Order Fulfillment Time
+
+Measures average time taken from order placement to delivery
+
+7 of 9
+
+
+
+SLA Breach Alerts
+
+Notifias when vendor or logistics partner exceeds committed delivery timelines.
+
+Low-Stock Alerts
+
+Sends alerts when product inventory falls below minimum threshold
+
+Coupon Usage Report
+
+Tracks number of coupon redemptions and revenue impact
+
+Device Spilt
+
+Shows user activity by device type (Mobile vs Desktop vs Tablet).
+
+Average Order Value (AOV)
+
+Calculates average revenue generated per order
+
+Cart Abandonment Rate
+
+Percentage of users who add lems to cart but don't complete purchase.
+
+Checkout Drop-off
+
+Identifies step where users leave during checkout process
+
+Top Viewed Products/Pages
+
+Shows most visited product pages and landing pages.
+
+User Joumey Flow
+
+Tracka navigation path (Home Product Cart-Checkout Exit)
+
+Heatmaps
+
+Visual representation of user clicks and scroll behavior on pages
+
+Best-Selling Products
+
+Displays products with highest sales volume or revenue
+
+
+
+Line Performing Products
+
+kerstes products with low sales or expagement
+
+Productelse Conversion Rate
+
+Measures conversion percentage for sach individual product.
+
+Inventory Tankover
+
+Shows how quickly stock is sold and replenisfied.
+
+Rafunds & Cancellations
+
+Tracks returned or cancelled orders with tagged reasons.
+
+New vs Retuming Customers
+
+Differentiales first time buyers from repeat customers.
+
+Customer Lifetime Value (CLV)
+
+Estimates total revenue generated from a customer aver time
+
+Repeat Purchase Rate
+
+Percentage of customers who purchase again.
+
+Chum Rata
+
+Percentage of customers who stop buying over a defined period
+
+Gross Margin
+
+Revenue minus cost of goods sold (COGS).
+
+Nel Prollt
+
+Final profit after deducting all experises (ads, opa, logistics, etc.)
+
+Cost Binsakdown
+
+Detailed expense spl across marketing, operations, logatios, etc.
+
+
+

@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* MyShaadiStore Admin – pink primary + shadcn-compatible variables */
+:root {
+  --background: #fafafa;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #ec4899;
+  --primary-foreground: #ffffff;
+  --primary-hover: #db2777;
+  --primary-light: #fce7f3;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #ec4899;
+  --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Custom Slim Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ff477e;
+  border-radius: 10px;
+  cursor: grab;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #de2c61;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #de2c61;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #de2c61;
+}
+
+/* Fix sidebar jumpy effects */
+.sidebar-item-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
