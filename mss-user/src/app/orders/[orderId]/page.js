@@ -1,4 +1,4 @@
-import OrderDetailClient from "@/components/OrderDetailClient";
+import OrderDetailPageServer from "@/components/server/OrderDetailPageServer";
 
 export const metadata = {
   title: "Order Details | MyShaadiStore",
@@ -6,6 +6,9 @@ export const metadata = {
 };
 
 export default async function OrderDetailPage({ params }) {
-  const { orderId } = await params;
-  return <OrderDetailClient orderId={orderId} />;
+  return (
+    <OrderDetailPageServer
+      params={params}
+    />
+  );
 }

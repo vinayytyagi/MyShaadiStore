@@ -1,5 +1,3 @@
-"use client";
-
 export default function AuthScene({
   children,
   title,
@@ -61,9 +59,6 @@ export default function AuthScene({
                   <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-800 sm:text-4xl">
                     {title || "Plan Your Dream Wedding"}
                   </h1>
-                  {/* <p className="mx-auto mt-3 max-w-[360px] text-sm leading-6 text-slate-500 opacity-90">
-                    {subtitle || "Add a few details to create your personalized wedding journey."}
-                  </p> */}
                 </div>
                 <div className="relative space-y-6">{children}</div>
               </div>
@@ -75,9 +70,6 @@ export default function AuthScene({
               <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-800 sm:text-4xl">
                 {title || "Plan Your Dream Wedding"}
               </h1>
-              <p className="mx-auto mt-3 max-w-[360px] text-sm leading-6 text-slate-500 opacity-90">
-                {subtitle || "Add a few details to create your personalized wedding journey."}
-              </p>
             </div>
             <div className="relative space-y-6">{children}</div>
             <div className="mt-10 text-center">

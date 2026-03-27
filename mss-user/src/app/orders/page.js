@@ -1,10 +1,12 @@
-import MyOrdersClient from "@/components/MyOrdersClient";
+import OrdersPageServer from "@/components/server/OrdersPageServer";
 
 export const metadata = {
   title: "My Orders | MyShaadiStore",
   description: "View and track all your MyShaadiStore orders",
 };
 
-export default function OrdersPage() {
-  return <MyOrdersClient />;
+export default async function OrdersPage() {
+  return (
+    <OrdersPageServer />
+  );
 }

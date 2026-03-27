@@ -1,4 +1,4 @@
-import TrackOrderClient from "@/components/TrackOrderClient";
+import TrackOrderPageServer from "@/components/server/TrackOrderPageServer";
 
 export const metadata = {
   title: "Track Your Order | MyShaadiStore",
@@ -6,5 +6,7 @@ export const metadata = {
 };
 
 export default function TrackPage() {
-  return <TrackOrderClient />;
+  return (
+    <TrackOrderPageServer />
+  );
 }

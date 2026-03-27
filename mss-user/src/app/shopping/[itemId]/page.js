@@ -1,54 +1,32 @@
-import { notFound } from "next/navigation";
-import ShoppingProductDetail from "@/components/ShoppingProductDetail";
-import { fetchItem, fetchItems, fetchJourneySteps, fetchStepCategories } from "@/lib/api";
-import { isProductItem } from "@/lib/shopUi";
+import ShoppingItemPageServer from "@/components/server/ShoppingItemPageServer";
+import { fetchItem } from "@/lib/api";
 
-function resolveShoppingStep(steps = []) {
-  return (
-    steps.find((step) => String(step.slug || "").toLowerCase() === "shopping") ||
-    steps.find((step) => String(step.title || "").trim().toLowerCase() === "shopping") ||
-    steps.find((step) => {
-      const title = String(step.title || "").toLowerCase();
-      const slug = String(step.slug || "").toLowerCase();
-      return title.includes("shopping") || slug.includes("shopping");
-    }) ||
-    null
-  );
+export async function generateMetadata({ params }) {
+  const { itemId } = params;
+
+  try {
+    const item = await fetchItem(itemId);
+    const title = item?.name ? `${item.name} | MyShaadiStore` : "Shopping Item | MyShaadiStore";
+    const description =
+      item?.description ||
+      item?.subcategory_label ||
+      item?.category_label ||
+      item?.item_type ||
+      "Explore details and related products.";
+
+    return { title, description };
+  } catch {
+    return {
+      title: "Shopping Item | MyShaadiStore",
+      description: "Explore details and related products.",
+    };
+  }
 }
 
 export default async function ShoppingProductPage({ params }) {
-  let item;
-  let categories;
-  let relatedItems;
-
-  try {
-    const { itemId } = await params;
-    const steps = await fetchJourneySteps();
-    const shoppingStep = resolveShoppingStep(steps);
-    if (!shoppingStep) {
-      notFound();
-    }
-    item = await fetchItem(itemId);
-    if (item.journey_step_id !== shoppingStep.step_id) {
-      notFound();
-    }
-    const [nextCategories, relatedRes] = await Promise.all([
-      fetchStepCategories(shoppingStep.slug),
-      fetchItems({ journeyStepId: shoppingStep.step_id, categoryId: item.category_id, limit: 100 }),
-    ]);
-
-    categories = nextCategories;
-    relatedItems = (relatedRes.items || [])
-      .filter(isProductItem)
-      .filter((relatedItem) => relatedItem.item_id !== item.item_id)
-      .filter((relatedItem) => {
-        if (item.subcategory_id) return relatedItem.subcategory_id === item.subcategory_id;
-        return relatedItem.category_id === item.category_id;
-      })
-      .slice(0, 4);
-  } catch {
-    notFound();
-  }
-
-  return <ShoppingProductDetail item={item} categories={categories} relatedItems={relatedItems} />;
+  return (
+    <ShoppingItemPageServer
+      params={params}
+    />
+  );
 }

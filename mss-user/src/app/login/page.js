@@ -1,5 +1,12 @@
-import LoginFlow from "@/components/LoginFlow";
+import LoginPageServer from "@/components/server/LoginPageServer";
 
-export default function LoginPage() {
-  return <LoginFlow />;
+export const metadata = {
+  title: "Login | MyShaadiStore",
+  description: "Log in to view your profile, orders, and wedding journey.",
+};
+
+export default async function LoginPage() {
+  return (
+    <LoginPageServer />
+  );
 }

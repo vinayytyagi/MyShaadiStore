@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import AuthScene from "@/components/AuthScene";
 import { getAuthToken, getAuthUser, saveAuthCookies } from "@/lib/authCookies";
 import {
-  fetchJourneySteps,
   loginUser,
   requestResetOtp,
   resetPassword,
   verifyUserOtp,
 } from "@/lib/api";
 import { normalizePhone } from "@/lib/utils";
+import { makeIdempotencyKey } from "@/lib/idempotencyKey";
 import { toast } from "sonner";
 
 function PhoneIcon() {
@@ -49,9 +49,9 @@ const PRIMARY_BTN_CLASS =
 const SECONDARY_BTN_CLASS =
   "h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50";
 
-export default function LoginFlow() {
+export default function LoginFlow({ initialSteps = [] }) {
   const router = useRouter();
-  const [steps, setSteps] = useState([]);
+  const [steps] = useState(initialSteps);
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
   const [devOtp, setDevOtp] = useState("");
@@ -63,12 +63,6 @@ export default function LoginFlow() {
     newPassword: "",
     confirmPassword: "",
   });
-
-  useEffect(() => {
-    fetchJourneySteps()
-      .then((data) => setSteps(data || []))
-      .catch(() => setSteps([]));
-  }, []);
 
   useEffect(() => {
     try {
@@ -93,7 +87,9 @@ export default function LoginFlow() {
     setLoading(true);
     resetMessages();
     try {
-      const data = await loginUser(normalizePhone(form.phone), form.password);
+      const payload = { phone: normalizePhone(form.phone), purpose: "login" };
+      const idempotencyKey = makeIdempotencyKey("auth/login", payload);
+      const data = await loginUser(normalizePhone(form.phone), form.password, { idempotencyKey });
       saveAuthCookies(data);
       toast.success("Login successful.");
       
@@ -122,7 +118,9 @@ export default function LoginFlow() {
     setLoading(true);
     resetMessages();
     try {
-      const data = await requestResetOtp(normalizePhone(form.phone));
+      const payload = { phone: normalizePhone(form.phone), purpose: "reset" };
+      const idempotencyKey = makeIdempotencyKey("auth/request-reset-otp", payload);
+      const data = await requestResetOtp(normalizePhone(form.phone), { idempotencyKey });
       setDevOtp(data.devOtp || "");
       toast.success("OTP sent for password reset.");
       setMode("resetOtp");
@@ -138,7 +136,9 @@ export default function LoginFlow() {
     setLoading(true);
     resetMessages();
     try {
-      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "reset");
+      const payload = { phone: normalizePhone(form.phone), otp: form.otp, purpose: "reset" };
+      const idempotencyKey = makeIdempotencyKey("auth/verify-reset-otp", payload);
+      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "reset", { idempotencyKey });
       setVerificationToken(data.verificationToken);
       toast.success("OTP verified.");
       setMode("resetPassword");
@@ -160,10 +160,13 @@ export default function LoginFlow() {
       if (form.newPassword !== form.confirmPassword) {
         throw new Error("Passwords do not match.");
       }
-      await resetPassword({
+      const payload = {
         verification_token: verificationToken,
         password: form.newPassword,
-      });
+      };
+      const keyPayload = { verification_token: verificationToken, purpose: "reset-password" };
+      const idempotencyKey = makeIdempotencyKey("auth/reset-password", keyPayload);
+      await resetPassword(payload, { idempotencyKey });
       toast.success("Password reset successful. Please login.");
       setMode("login");
       setForm((f) => ({

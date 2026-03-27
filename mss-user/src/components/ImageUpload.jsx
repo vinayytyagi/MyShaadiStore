@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { uploadOracleImage } from "@/lib/api";
 
 export default function ImageUpload({ onUploadComplete, initialUrl = "", label = "Upload Image" }) {
   const [file, setFile] = useState(null);
@@ -26,23 +27,17 @@ export default function ImageUpload({ onUploadComplete, initialUrl = "", label =
       reader.onload = async () => {
         const base64Url = reader.result;
         
-        const res = await fetch("/api/v1/oracle-upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            fileBase64: base64Url, 
+        try {
+          const data = await uploadOracleImage({
+            fileBase64: base64Url,
             mimeType: selectedFile.type,
-            originalName: selectedFile.name
-          }),
-        });
+            originalName: selectedFile.name,
+          });
 
-        const data = await res.json();
-        
-        if (res.ok) {
           setUrl(data.url);
           if (onUploadComplete) onUploadComplete(data.url);
-        } else {
-          setErrorMsg(data.error || "Upload failed");
+        } catch (err) {
+          setErrorMsg(err.message || "Upload failed");
         }
         setLoading(false);
       };

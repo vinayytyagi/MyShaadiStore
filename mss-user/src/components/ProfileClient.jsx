@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useAuthUser, getAuthToken, saveAuthCookies, clearAuthCookies } from "@/lib/authCookies";
-import { fetchMyProfile, updateMyProfile, fetchMyOrders } from "@/lib/api";
+import { updateMyProfile } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
 import { formatLakhs } from "@/lib/utils";
 
@@ -101,68 +101,34 @@ function getInitials(name) {
 }
 
 /* ── Main Component ────────────────────────────────── */
-export default function ProfileClient() {
+export default function ProfileClient({ initialProfile = null, initialOrders = [] }) {
   const user = useAuthUser();
-  const [profile, setProfile] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [profile, setProfile] = useState(initialProfile);
+  const [orders] = useState(initialOrders);
+  const [loading] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
 
   // Edit states
   const [editingBasic, setEditingBasic] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editImage, setEditImage] = useState("");
+  const [editName, setEditName] = useState(initialProfile?.name || "");
+  const [editEmail, setEditEmail] = useState(initialProfile?.email || "");
+  const [editImage, setEditImage] = useState(initialProfile?.image_url || "");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
   // Address states
-  const [addresses, setAddresses] = useState([]);
+  const [addresses, setAddresses] = useState(initialProfile?.addresses || []);
   const [editingAddress, setEditingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: "Home", line1: "", line2: "", city: "", state: "", pincode: "" });
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Wedding edit
   const [editingWedding, setEditingWedding] = useState(false);
-  const [editWeddingDate, setEditWeddingDate] = useState("");
-  const [editGuestsCount, setEditGuestsCount] = useState("");
-  const [editVenueLocation, setEditVenueLocation] = useState("");
+  const [editWeddingDate, setEditWeddingDate] = useState(initialProfile?.onboarding?.wedding_date || "");
+  const [editGuestsCount, setEditGuestsCount] = useState(initialProfile?.onboarding?.guests_count || "");
+  const [editVenueLocation, setEditVenueLocation] = useState(initialProfile?.onboarding?.venue_location || "");
   const [editingBudget, setEditingBudget] = useState(false);
-  const [editBudgetAllocations, setEditBudgetAllocations] = useState([]);
-
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    const token = getAuthToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    Promise.all([
-      fetchMyProfile(token).catch(() => null),
-      fetchMyOrders(token).catch(() => ({ orders: [] })),
-    ]).then(([prof, ordersData]) => {
-        if (prof) {
-            setProfile(prof);
-            setEditName(prof.name || "");
-            setEditEmail(prof.email || "");
-            setEditImage(prof.image_url || "");
-            setAddresses(prof.addresses || []);
-            
-            const onboarding = prof.onboarding || {};
-            setEditWeddingDate(onboarding.wedding_date || "");
-            setEditGuestsCount(onboarding.guests_count || "");
-            setEditVenueLocation(onboarding.venue_location || "");
-            setEditBudgetAllocations(onboarding.budget_allocations || []);
-        }
-        setOrders(ordersData?.orders || []);
-    }).catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [user]);
+  const [editBudgetAllocations, setEditBudgetAllocations] = useState(initialProfile?.onboarding?.budget_allocations || []);
 
   async function handleSaveBasic() {
     setSaving(true);

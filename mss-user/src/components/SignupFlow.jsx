@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthScene from "@/components/AuthScene";
 import { getAuthToken, getAuthUser, saveAuthCookies } from "@/lib/authCookies";
-import { fetchJourneySteps, requestUserOtp, signupUser, verifyUserOtp, progressiveSave } from "@/lib/api";
+import { requestUserOtp, signupUser, verifyUserOtp, progressiveSave } from "@/lib/api";
 import { normalizePhone, formatLakhs, slugify } from "@/lib/utils";
+import { makeIdempotencyKey } from "@/lib/idempotencyKey";
 import { toast } from "sonner";
 
 const ONBOARDING_STEPS = ["Engagement", "Wedding Date", "Venue", "Guests", "Budget"];
@@ -56,9 +57,9 @@ function formatBudgetCompact(amount) {
   return `${num}`;
 }
 
-export default function SignupFlow() {
+export default function SignupFlow({ initialSteps = [] }) {
   const router = useRouter();
-  const [steps, setSteps] = useState([]);
+  const [steps] = useState(initialSteps);
   const [phase, setPhase] = useState("phone");
   const [loading, setLoading] = useState(false);
   const [devOtp, setDevOtp] = useState("");
@@ -76,27 +77,17 @@ export default function SignupFlow() {
     venue_location: "",
     guests_count: "",
   });
-  const [budgetAllocations, setBudgetAllocations] = useState([]);
+  const [budgetAllocations, setBudgetAllocations] = useState(
+    initialSteps.map((step) => ({
+      step_id: step.step_id,
+      slug: step.slug,
+      title: step.title,
+      amount: step.default_budget || 0,
+      max_budget: Math.max(Number(step.max_budget) || 0, Number(step.default_budget) || 0, 500000),
+    }))
+  );
   const todayIso = new Date().toISOString().split("T")[0];
   const currentMonthIso = todayIso.slice(0, 7);
-
-  useEffect(() => {
-    fetchJourneySteps()
-      .then((data) => {
-        const list = data || [];
-        setSteps(list);
-        setBudgetAllocations(
-          list.map((step) => ({
-            step_id: step.step_id,
-            slug: step.slug,
-            title: step.title,
-            amount: step.default_budget || 0,
-            max_budget: Math.max(Number(step.max_budget) || 0, Number(step.default_budget) || 0, 500000),
-          }))
-        );
-      })
-      .catch(() => setSteps([]));
-  }, []);
 
   useEffect(() => {
     try {
@@ -147,15 +138,16 @@ export default function SignupFlow() {
     setLoading(true);
     try {
       if (!form.name.trim()) throw new Error("Name is required.");
-      const data = await requestUserOtp(normalizePhone(form.phone), "signup");
+      const requestPayload = { phone: normalizePhone(form.phone), purpose: "signup" };
+      const idempotencyKey = makeIdempotencyKey("auth/request-otp", requestPayload);
+      const data = await requestUserOtp(normalizePhone(form.phone), "signup", { idempotencyKey });
       setDevOtp(data.devOtp || "");
       
       // Save name and phone immediately after OTP request
       try {
-        await progressiveSave({
-          name: form.name,
-          phone: normalizePhone(form.phone),
-        });
+        const initialSavePayload = { name: form.name, phone: normalizePhone(form.phone) };
+        const initialSaveKey = makeIdempotencyKey("auth/progressive-save:init", initialSavePayload);
+        await progressiveSave(initialSavePayload, { idempotencyKey: initialSaveKey });
       } catch (saveErr) {
         console.warn("Failed to save initial signup data:", saveErr.message);
       }
@@ -173,7 +165,9 @@ export default function SignupFlow() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "signup");
+      const verifyPayload = { phone: normalizePhone(form.phone), otp: form.otp, purpose: "signup" };
+      const idempotencyKey = makeIdempotencyKey("auth/verify-otp", verifyPayload);
+      const data = await verifyUserOtp(normalizePhone(form.phone), form.otp, "signup", { idempotencyKey });
       setVerificationToken(data.verificationToken);
       toast.success("Phone number verified.");
       setPhase("password");
@@ -201,10 +195,12 @@ export default function SignupFlow() {
   async function saveEngagementProgress(nextEngagementStatus = form.engagement_status) {
     setLoading(true);
     try {
-      await progressiveSave({
+      const payload = {
         verification_token: verificationToken,
         engagement_status: nextEngagementStatus,
-      });
+      };
+      const idempotencyKey = makeIdempotencyKey("auth/progressive-save:engagement", payload);
+      await progressiveSave(payload, { idempotencyKey });
     } catch (e2) {
       console.warn("Failed to save engagement status:", e2.message);
       // Don't block flow on save error
@@ -222,8 +218,9 @@ export default function SignupFlow() {
       };
       if (form.wedding_date_type === "exact") payload.wedding_date = form.wedding_date || null;
       if (form.wedding_date_type === "month") payload.wedding_month = form.wedding_month || null;
-      
-      await progressiveSave(payload);
+
+      const idempotencyKey = makeIdempotencyKey("auth/progressive-save:wedding-date", payload);
+      await progressiveSave(payload, { idempotencyKey });
     } catch (e2) {
       console.warn("Failed to save wedding date:", e2.message);
     } finally {
@@ -234,10 +231,12 @@ export default function SignupFlow() {
   async function saveVenueProgress() {
     setLoading(true);
     try {
-      await progressiveSave({
+      const payload = {
         verification_token: verificationToken,
         venue_location: form.venue_location || null,
-      });
+      };
+      const idempotencyKey = makeIdempotencyKey("auth/progressive-save:venue", payload);
+      await progressiveSave(payload, { idempotencyKey });
     } catch (e2) {
       console.warn("Failed to save venue location:", e2.message);
     } finally {
@@ -248,10 +247,12 @@ export default function SignupFlow() {
   async function saveGuestsProgress() {
     setLoading(true);
     try {
-      await progressiveSave({
+      const payload = {
         verification_token: verificationToken,
         guests_count: Number(form.guests_count) || 0,
-      });
+      };
+      const idempotencyKey = makeIdempotencyKey("auth/progressive-save:guests", payload);
+      await progressiveSave(payload, { idempotencyKey });
     } catch (e2) {
       console.warn("Failed to save guests count:", e2.message);
     } finally {
@@ -262,7 +263,7 @@ export default function SignupFlow() {
   async function saveBudgetProgress() {
     setLoading(true);
     try {
-      await progressiveSave({
+      const payload = {
         verification_token: verificationToken,
         budget_total: totalAllocated,
         budget_allocations: budgetAllocations.map((item) => ({
@@ -272,7 +273,9 @@ export default function SignupFlow() {
           amount: Number(item.amount) || 0,
           max_budget: Number(item.max_budget) || MAX_BUDGET_PER_STEP,
         })),
-      });
+      };
+      const idempotencyKey = makeIdempotencyKey("auth/progressive-save:budget", payload);
+      await progressiveSave(payload, { idempotencyKey });
     } catch (e2) {
       console.warn("Failed to save budget:", e2.message);
     } finally {
@@ -307,7 +310,10 @@ export default function SignupFlow() {
         guests_count: Number(form.guests_count) || 0,
       });
 
-      const data = await signupUser(payload);
+      const payloadForKey = { ...payload };
+      delete payloadForKey.password;
+      const idempotencyKey = makeIdempotencyKey("auth/signup", payloadForKey);
+      const data = await signupUser(payload, { idempotencyKey });
       saveAuthCookies(data);
 
       const searchParams = new URLSearchParams(window.location.search);

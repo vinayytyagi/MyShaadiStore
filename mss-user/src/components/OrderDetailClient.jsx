@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAuthUser, getAuthToken } from "@/lib/authCookies";
-import { fetchMyOrders, trackOrder } from "@/lib/api";
+import { useAuthUser } from "@/lib/authCookies";
+import { trackOrder } from "@/lib/api";
 
 /* ── Helpers ────────────────────────────────────────── */
 function formatDate(dateStr) {
@@ -72,45 +72,24 @@ function StatusBadge({ status }) {
 }
 
 /* ── Main Component ────────────────────────────────── */
-export default function OrderDetailClient({ orderId }) {
+export default function OrderDetailClient({ initialOrder = null, initialTracking = null, initialError = "" }) {
   const user = useAuthUser();
-  const [order, setOrder] = useState(null);
-  const [tracking, setTracking] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [order] = useState(initialOrder);
+  const [tracking, setTracking] = useState(initialTracking);
+  const [loading] = useState(false);
+  const [error] = useState(initialError);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
+    if (!user || !order || tracking) {
       return;
     }
-    const token = getAuthToken();
-    if (!token) {
-      setLoading(false);
-      return;
+    if (order.shipment?.awb_code && user?.phone) {
+      trackOrder(order.order_number, user.phone)
+        .then((t) => setTracking(t))
+        .catch(() => {});
     }
-
-    fetchMyOrders(token)
-      .then((data) => {
-        const found = (data.orders || []).find(
-          (o) => o._id === orderId || o.order_number === orderId
-        );
-        if (found) {
-          setOrder(found);
-          // If order has AWB, fetch tracking
-          if (found.shipment?.awb_code && user?.phone) {
-            trackOrder(found.order_number, user.phone)
-              .then((t) => setTracking(t))
-              .catch(() => {});
-          }
-        } else {
-          setError("Order not found");
-        }
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [user, orderId]);
+  }, [user, order, tracking]);
 
   function handleCopy(text) {
     navigator.clipboard.writeText(text);

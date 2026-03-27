@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useAuthUser, getAuthToken } from "@/lib/authCookies";
-import { fetchMyOrders } from "@/lib/api";
+import { useAuthUser } from "@/lib/authCookies";
 
 /* ── Icons ─────────────────────────────────────────────── */
 function PackageIcon() {
@@ -86,27 +85,11 @@ function formatCurrency(amount) {
 }
 
 /* ── Main Component ────────────────────────────────────── */
-export default function MyOrdersClient() {
+export default function MyOrdersClient({ initialOrders = [], initialError = "" }) {
   const user = useAuthUser();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    const token = getAuthToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    fetchMyOrders(token)
-      .then((data) => setOrders(data.orders || []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [user]);
+  const [orders] = useState(initialOrders);
+  const [loading] = useState(false);
+  const [error] = useState(initialError);
 
   /* Not logged in */
   if (!user) {
