@@ -4,8 +4,8 @@ import { fetchMyOrders, trackOrder } from "@/lib/api";
 
 export default async function OrderDetailPageServer({ params }) {
   const { orderId } = await params;
-  const token = getAuthTokenServer();
-  const user = getAuthUserServer();
+  const token = await getAuthTokenServer();
+  const user = await getAuthUserServer();
   let initialOrder = null;
   let initialTracking = null;
   let initialError = "";

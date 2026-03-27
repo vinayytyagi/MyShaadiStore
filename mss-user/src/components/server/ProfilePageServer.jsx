@@ -3,7 +3,7 @@ import { getAuthTokenServer } from "@/lib/authCookiesServer";
 import { fetchMyOrders, fetchMyProfile } from "@/lib/api";
 
 export default async function ProfilePageServer() {
-  const token = getAuthTokenServer();
+  const token = await getAuthTokenServer();
   let initialProfile = null;
   let initialOrders = [];
 

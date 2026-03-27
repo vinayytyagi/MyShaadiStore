@@ -12,13 +12,20 @@ function decodeCookieValue(value) {
   }
 }
 
-export function getAuthTokenServer() {
-  const token = cookies().get(TOKEN_COOKIE)?.value;
+async function getCookieStore() {
+  const store = cookies();
+  return typeof store?.then === "function" ? await store : store;
+}
+
+export async function getAuthTokenServer() {
+  const cookieStore = await getCookieStore();
+  const token = cookieStore?.get?.(TOKEN_COOKIE)?.value;
   return decodeCookieValue(token);
 }
 
-export function getAuthUserServer() {
-  const raw = cookies().get(USER_COOKIE)?.value;
+export async function getAuthUserServer() {
+  const cookieStore = await getCookieStore();
+  const raw = cookieStore?.get?.(USER_COOKIE)?.value;
   const decoded = decodeCookieValue(raw);
   if (!decoded) return null;
   try {

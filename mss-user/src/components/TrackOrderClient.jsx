@@ -38,6 +38,15 @@ function formatDate(dateStr) {
   });
 }
 
+function formatShortDate(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const ORDER_STEPS = ["Placed", "Confirmed", "Shipped", "Delivered"];
 
 function getStepIndex(status, fulfillment) {
@@ -48,16 +57,16 @@ function getStepIndex(status, fulfillment) {
 }
 
 /* ── Main Component ────────────────────────────────── */
-export default function TrackOrderClient() {
+export default function TrackOrderClient({ initialOrders = [], initialPhone = "" }) {
   const [orderNumber, setOrderNumber] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(initialPhone);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
 
-  async function handleTrack(e) {
-    e.preventDefault();
-    if (!orderNumber.trim() || !phone.trim()) {
+  async function runTracking(targetOrderNumber, targetPhone) {
+    if (!targetOrderNumber.trim() || !targetPhone.trim()) {
       setError("Please enter both order number and phone number");
       return;
     }
@@ -67,13 +76,26 @@ export default function TrackOrderClient() {
     setLoading(true);
 
     try {
-      const data = await trackOrder(orderNumber.trim(), phone.trim());
+      const data = await trackOrder(targetOrderNumber.trim(), targetPhone.trim());
       setResult(data);
     } catch (err) {
       setError(err.message || "Could not find your order");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleTrack(e) {
+    e.preventDefault();
+    await runTracking(orderNumber, phone);
+  }
+
+  async function handleQuickTrack(order) {
+    const quickPhone = initialPhone || phone;
+    setOrderNumber(order.order_number || "");
+    setSelectedOrderNumber(order.order_number || "");
+    if (quickPhone) setPhone(quickPhone);
+    await runTracking(order.order_number || "", quickPhone || "");
   }
 
   const stepIndex = result ? getStepIndex(result.status, result.fulfillment_status) : 0;
@@ -136,6 +158,59 @@ export default function TrackOrderClient() {
           )}
         </button>
       </form>
+
+      {/* My Orders Quick Track */}
+      {initialOrders.length > 0 && (
+        <section className="mt-8 rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.04)] backdrop-blur sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-700">Your Recent Orders</h2>
+              <p className="text-sm text-slate-400">Track with one click using your registered phone number.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+              {initialOrders.length} order{initialOrders.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {initialOrders.slice(0, 6).map((order) => (
+              <div
+                key={order._id || order.order_number}
+                className={`rounded-2xl border px-4 py-4 transition ${
+                  selectedOrderNumber === order.order_number
+                    ? "border-[#ff4f86]/40 bg-[#fff1f6]"
+                    : "border-slate-100 bg-slate-50/60"
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-slate-400">Order Number</p>
+                    <p className="text-sm font-bold text-slate-700">{order.order_number}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {order.status || "Pending"}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {order.fulfillment_status || "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                  <p className="text-xs text-slate-500">Placed on {formatShortDate(order.created_at)}</p>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickTrack(order)}
+                    disabled={loading}
+                    className="rounded-xl bg-[#ff4f86] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#ff3d79] disabled:opacity-60"
+                  >
+                    Track This Order
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Results */}
       {result && (
