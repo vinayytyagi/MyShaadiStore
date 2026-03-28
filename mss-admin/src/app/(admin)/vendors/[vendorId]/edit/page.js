@@ -47,6 +47,7 @@ export default function EditVendorPage() {
     commission_percentage: "",
     status: "Active",
     image_url: "",
+    pickup_addresses: [],
   });
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function EditVendorPage() {
           commission_percentage: v.commission_percentage != null ? String(v.commission_percentage) : "",
           status: v.status || "Active",
           image_url: v.image_url || "",
+          pickup_addresses: Array.isArray(v.pickup_addresses) ? v.pickup_addresses : [],
         });
       } catch (e) {
         toast.error(e.message || "Failed to load vendor");
@@ -99,6 +101,7 @@ export default function EditVendorPage() {
         commission_percentage: form.commission_percentage ? Number(form.commission_percentage) : null,
         status: form.status,
         image_url: form.image_url || null,
+        pickup_addresses: form.pickup_addresses,
       };
       if (form.password && form.password.length >= 6) body.password = form.password;
 
@@ -172,6 +175,60 @@ export default function EditVendorPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">Email can’t be changed (used as unique login).</p>
+              </div>
+
+              <div className="space-y-4 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label>Pickup Addresses</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        pickup_addresses: [
+                          ...(f.pickup_addresses || []),
+                          {
+                            label: `Pickup ${(f.pickup_addresses || []).length + 1}`,
+                            line1: "",
+                            line2: "",
+                            city: "",
+                            state: "",
+                            pincode: "",
+                            contact_name: "",
+                            contact_phone: "",
+                            is_default: (f.pickup_addresses || []).length === 0,
+                          },
+                        ],
+                      }))
+                    }
+                  >
+                    Add Pickup
+                  </Button>
+                </div>
+                {(form.pickup_addresses || []).map((addr, idx) => (
+                  <div key={idx} className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-3">
+                    <Input placeholder="Label" value={addr.label || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, label: e.target.value } : p) }))} />
+                    <Input placeholder="Address line 1" value={addr.line1 || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, line1: e.target.value } : p) }))} />
+                    <Input placeholder="Address line 2" value={addr.line2 || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, line2: e.target.value } : p) }))} />
+                    <Input placeholder="City" value={addr.city || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, city: e.target.value } : p) }))} />
+                    <Input placeholder="State" value={addr.state || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, state: e.target.value } : p) }))} />
+                    <Input placeholder="Pincode" value={addr.pincode || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, pincode: e.target.value } : p) }))} />
+                    <Input placeholder="Contact name" value={addr.contact_name || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, contact_name: e.target.value } : p) }))} />
+                    <Input placeholder="Contact phone" value={addr.contact_phone || ""} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, contact_phone: e.target.value } : p) }))} />
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={addr.is_default === true} onChange={() => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => ({ ...p, is_default: i === idx })) }))} />
+                        Default
+                      </label>
+                      {(form.pickup_addresses || []).length > 0 && (
+                        <Button type="button" variant="ghost" onClick={() => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.filter((_, i) => i !== idx) }))}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-2">

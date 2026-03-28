@@ -62,8 +62,12 @@ export default function EditItemPage() {
     discount_starts_at: "",
     discount_ends_at: "",
     returnable: false,
+    cancellable: true,
+    refundable: false,
     replaceable: false,
     exchangeable: false,
+    cancellation_window_hours: "24",
+    refund_window_days: "",
     return_window_days: "",
     return_policy_text: "",
     exchange_policy_text: "",
@@ -101,8 +105,12 @@ export default function EditItemPage() {
           discount_starts_at: toLocalDateTimeInputValue(item.discount?.starts_at),
           discount_ends_at: toLocalDateTimeInputValue(item.discount?.ends_at),
           returnable: item.policies?.returnable === true,
+          cancellable: item.policies?.cancellable !== false,
+          refundable: item.policies?.refundable === true,
           replaceable: item.policies?.replaceable === true,
           exchangeable: item.policies?.exchangeable === true,
+          cancellation_window_hours: String(item.policies?.cancellation_window_hours ?? 24),
+          refund_window_days: String(item.policies?.refund_window_days ?? 0),
           return_window_days: String(item.policies?.return_window_days ?? ""),
           return_policy_text: item.policies?.return_policy_text || "",
           exchange_policy_text: item.policies?.exchange_policy_text || "",
@@ -185,9 +193,13 @@ export default function EditItemPage() {
             ends_at: form.discount_ends_at ? new Date(form.discount_ends_at).toISOString() : null,
           },
           policies: {
+            cancellable: !!form.cancellable,
+            refundable: !!form.refundable,
             returnable: !!form.returnable,
             replaceable: !!form.replaceable,
             exchangeable: !!form.exchangeable,
+            cancellation_window_hours: form.cancellation_window_hours ? Number(form.cancellation_window_hours) : 24,
+            refund_window_days: form.refund_window_days ? Number(form.refund_window_days) : 0,
             return_window_days: form.return_window_days ? Number(form.return_window_days) : null,
             return_policy_text: form.return_policy_text || null,
             exchange_policy_text: form.exchange_policy_text || null,
@@ -409,6 +421,8 @@ export default function EditItemPage() {
                     <CardContent className="p-10 space-y-10">
                        <div className="flex flex-wrap gap-10">
                           {[
+                            { label: "Cancellable", key: "cancellable" },
+                            { label: "Refundable", key: "refundable" },
                             { label: "Returnable", key: "returnable" },
                             { label: "Replaceable", key: "replaceable" },
                             { label: "Exchangeable", key: "exchangeable" }
@@ -429,6 +443,20 @@ export default function EditItemPage() {
                                <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Processing days</span>
                              </div>
                              <Input type="number" min="0" value={form.return_window_days} onChange={(e) => setForm((f) => ({ ...f, return_window_days: e.target.value }))} className="h-10 border-none bg-white font-mono text-center shadow-md w-24 rounded-xl text-indigo-600 font-bold" />
+                          </div>
+                          <div className="flex-1 min-w-[280px] flex items-center gap-4 bg-slate-50 p-3 rounded-2xl ring-1 ring-slate-100/50">
+                             <div className="flex flex-col">
+                               <span className="text-[10px] font-medium text-slate-400">Cancellation</span>
+                               <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Hours</span>
+                             </div>
+                             <Input type="number" min="0" value={form.cancellation_window_hours} onChange={(e) => setForm((f) => ({ ...f, cancellation_window_hours: e.target.value }))} className="h-10 border-none bg-white font-mono text-center shadow-md w-24 rounded-xl text-indigo-600 font-bold" />
+                          </div>
+                          <div className="flex-1 min-w-[280px] flex items-center gap-4 bg-slate-50 p-3 rounded-2xl ring-1 ring-slate-100/50">
+                             <div className="flex flex-col">
+                               <span className="text-[10px] font-medium text-slate-400">Refund</span>
+                               <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Days</span>
+                             </div>
+                             <Input type="number" min="0" value={form.refund_window_days} onChange={(e) => setForm((f) => ({ ...f, refund_window_days: e.target.value }))} className="h-10 border-none bg-white font-mono text-center shadow-md w-24 rounded-xl text-indigo-600 font-bold" />
                           </div>
                        </div>
 

@@ -6,6 +6,6 @@ export { requestUserOtp, verifyUserOtp, signupUser, progressiveSave, loginUser, 
 
 export { submitQuotationRequest, createShoppingOrder, verifyRazorpayPayment, trackOrder } from "./api/ordersApi";
 
-export { fetchMyProfile, updateMyProfile, fetchMyOrders } from "./api/userApi";
+export { fetchMyProfile, updateMyProfile, fetchMyOrders, cancelMyOrder, requestMyOrderRefund } from "./api/userApi";
 
 export { uploadOracleImage } from "./api/uploadApi";

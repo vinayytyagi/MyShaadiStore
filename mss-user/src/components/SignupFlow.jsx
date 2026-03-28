@@ -329,7 +329,7 @@ export default function SignupFlow({ initialSteps = [] }) {
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get("returnTo");
       if (returnTo) {
-        window.location.href = returnTo;
+        router.push(returnTo);
         return;
       }
 

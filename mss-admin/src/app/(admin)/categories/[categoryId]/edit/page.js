@@ -45,7 +45,6 @@ export default function EditCategoryPage() {
     journey_step_id: "",
     parent_category_id: "",
     name: "",
-    slug: "",
     is_active: true,
     image_url: "",
   });
@@ -66,7 +65,6 @@ export default function EditCategoryPage() {
           journey_step_id: cat.journey_step_id || "",
           parent_category_id: cat.parent_category_id || "",
           name: cat.name || "",
-          slug: cat.slug || "",
           is_active: cat.is_active !== false,
           image_url: cat.image_url || "",
         });
@@ -97,22 +95,22 @@ export default function EditCategoryPage() {
         childList.map((c) => ({
           id: c.category_id,
           name: c.name || "",
-          slug: c.slug || "",
           is_active: c.is_active !== false,
-        }))
+        })),
       );
       setInitialChildIds(childList.map((c) => c.category_id));
       return;
     }
     if (categories.length > 0) {
-      setSubcategories([{ id: null, name: "", slug: "", is_active: true }]);
+      setSubcategories([{ id: null, name: "", is_active: true }]);
       setInitialChildIds([]);
     }
   }, [categories, categoryId]);
 
-  const currentStep = steps.find((s) => s.step_id === form.journey_step_id);
-  const isShopping = currentStep?.slug === "shopping";
-  const isTopLevelShopping = isShopping && !form.parent_category_id;
+  const isMainCategory = !form.parent_category_id;
+  const parentCategory = form.parent_category_id
+    ? categories.find((c) => c.category_id === form.parent_category_id)
+    : null;
   const stepOptions = useMemo(
     () =>
       steps.map((s) => ({
@@ -122,11 +120,6 @@ export default function EditCategoryPage() {
       })),
     [steps]
   );
-
-  const parentOptions = useMemo(() => {
-    const parents = categories.filter((c) => !c.parent_category_id && c.category_id !== categoryId);
-    return parents.map((c) => ({ value: c.category_id, label: c.name, keywords: c.slug }));
-  }, [categories, categoryId]);
 
   function updateSubcategory(index, key, value) {
     setSubcategories((list) => list.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
@@ -140,8 +133,8 @@ export default function EditCategoryPage() {
       toast.error("Please select a journey step");
       return;
     }
-    if (!isTopLevelShopping && initialChildIds.length > 0) {
-      toast.error("Remove subcategories first or keep this as a top-level Shopping category");
+    if (!form.parent_category_id && !form.image_url) {
+      toast.error("Please add a category image");
       return;
     }
     setSaving(true);
@@ -151,9 +144,9 @@ export default function EditCategoryPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           journey_step_id: form.journey_step_id,
-          parent_category_id: isShopping ? (form.parent_category_id || null) : null,
+          parent_category_id: form.parent_category_id || null,
           name: form.name,
-          slug: form.slug || slugify(form.name),
+          slug: slugify(form.name),
           is_active: !!form.is_active,
           image_url: form.image_url || null,
         }),
@@ -164,12 +157,12 @@ export default function EditCategoryPage() {
         return;
       }
 
-      if (isTopLevelShopping) {
+      if (isMainCategory) {
         const validSubs = subcategories
           .map((item) => ({
             ...item,
             name: String(item.name || "").trim(),
-            slug: slugify(item.slug || item.name),
+            slug: slugify(item.name),
           }))
           .filter((item) => item.name);
 
@@ -239,7 +232,7 @@ export default function EditCategoryPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <SectionHeader
         title="Edit category"
-        description="Update category structure, media, and visibility."
+        description="Update the name, image, and optional subcategories. Subcategories show on the customer site next to this category."
         action={
           <div className="flex items-center gap-3">
             <Button variant="outline" asChild className="h-10 gap-2 rounded-lg px-4 font-medium">
@@ -271,125 +264,104 @@ export default function EditCategoryPage() {
                   <Label className="text-sm font-medium text-slate-700 ml-1">Journey step *</Label>
                   <Combobox
                     value={form.journey_step_id}
-                    onChange={(v) => setForm((f) => ({ ...f, journey_step_id: v, parent_category_id: "" }))}
+                    onChange={(v) => setForm((f) => ({ ...f, journey_step_id: v }))}
                     options={stepOptions}
                     placeholder="Select step…"
                     searchPlaceholder="Search steps…"
                   />
-                  <p className="text-xs text-slate-500 ml-1">This decides where the category appears in the journey.</p>
+                  <p className="text-xs text-slate-500 ml-1">Where this category appears in the journey.</p>
                 </div>
 
-                {isShopping && (
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-slate-700 ml-1">Parent category (optional)</Label>
-                    <select
-                      value={form.parent_category_id}
-                      onChange={(e) => setForm((f) => ({ ...f, parent_category_id: e.target.value }))}
-                      className="flex h-12 w-full rounded-2xl border-transparent bg-slate-50 px-4 py-2 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all outline-none"
-                    >
-                      <option value="">Top-level category</option>
-                      {parentOptions.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-500 ml-1">Use parent category to create hierarchy.</p>
+                {!isMainCategory && parentCategory ? (
+                  <div className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 md:col-span-2">
+                    <Label className="text-sm font-medium text-slate-700">Subcategory of</Label>
+                    <p className="text-base font-semibold text-slate-900">{parentCategory.name}</p>
+                    <p className="text-xs text-slate-500">
+                      You’re editing this subcategory only. To manage the main category or its other subcategories, open that category from the list.
+                    </p>
                   </div>
-                )}
+                ) : null}
 
-                <div className="space-y-3 col-span-1 md:col-span-2">
+                <div className="col-span-1 md:col-span-2 space-y-3">
                    <Separator className="bg-slate-100" />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 md:col-span-2">
                   <Label className="text-sm font-medium text-slate-700 ml-1">Category name *</Label>
-                  <Input 
-                    value={form.name} 
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} 
-                    required 
+                  <Input
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    required
                     className="h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all rounded-xl text-base font-medium"
                     placeholder="e.g. Photography & Video"
                   />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-slate-700 ml-1">Slug</Label>
-                  <Input 
-                    value={form.slug} 
-                    onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))} 
-                    className="h-12 bg-slate-50 border-transparent focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all rounded-xl font-mono text-sm text-slate-500"
-                    placeholder="photography-video"
-                  />
+                  <p className="text-xs text-slate-500 ml-1">
+                    Slug for URLs is generated from this name (lowercase, spaces to hyphens).
+                  </p>
                 </div>
 
                 <div className="col-span-1 md:col-span-2">
-                   <ImageUpload
-                     label="Hero Banner / Thumbnail"
-                     initialUrl={form.image_url}
-                     onUploadComplete={(url) => setForm(f => ({ ...f, image_url: url }))}
-                   />
+                  <ImageUpload
+                    label={form.parent_category_id ? "Category image (optional)" : "Category image *"}
+                    initialUrl={form.image_url}
+                    onUploadComplete={(url) => setForm((f) => ({ ...f, image_url: url }))}
+                  />
                 </div>
 
-                {isTopLevelShopping && (
+                {isMainCategory ? (
                   <div className="col-span-1 md:col-span-2 space-y-6 pt-6 border-t border-slate-100">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <Label className="text-base font-bold text-slate-900">Sub-Classification</Label>
-                        <p className="text-xs text-slate-500 mt-1">Define children categories for better navigation</p>
+                        <Label className="text-base font-bold text-slate-900">Subcategories (optional)</Label>
+                        <p className="text-xs text-slate-500 mt-1">Shown next to this category on the customer site</p>
                       </div>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 font-bold"
+                        className="gap-2 rounded-xl border-slate-200 font-bold hover:bg-slate-50"
                         onClick={() =>
-                          setSubcategories((list) => [...list, { id: null, name: "", slug: "", is_active: true }])
+                          setSubcategories((list) => [...list, { id: null, name: "", is_active: true }])
                         }
                       >
                         <Plus className="size-4" />
-                        Add Node
+                        Add subcategory
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {subcategories.map((sub, index) => (
-                        <div key={sub.id || index} className="space-y-4 rounded-3xl border border-slate-100 bg-slate-50/30 p-5 relative group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                           <div className="flex flex-col gap-4">
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Sub-Name</Label>
-                                <Input
-                                  value={sub.name}
-                                  onChange={(e) => updateSubcategory(index, "name", e.target.value)}
-                                  placeholder="Child name"
-                                  className="bg-white border-slate-200 rounded-xl"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Sub-Slug</Label>
-                                <Input
-                                  value={sub.slug}
-                                  onChange={(e) => updateSubcategory(index, "slug", slugify(e.target.value))}
-                                  placeholder="child-slug"
-                                  className="bg-white border-slate-200 rounded-xl font-mono text-xs"
-                                />
-                              </div>
-                           </div>
-                           <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSubcategories((list) => list.filter((_, i) => i !== index))}
-                              disabled={subcategories.length === 1}
-                              className="absolute -top-2 -right-2 bg-white border border-slate-100 shadow-lg rounded-full h-8 w-8 hover:bg-red-50 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
+                        <div
+                          key={sub.id || index}
+                          className="group relative space-y-4 rounded-3xl border border-slate-100 bg-slate-50/30 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
+                        >
+                          <div className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                              <Label className="ml-1 text-xs font-semibold text-slate-600">Subcategory name</Label>
+                              <Input
+                                value={sub.name}
+                                onChange={(e) => updateSubcategory(index, "name", e.target.value)}
+                                placeholder="e.g. Candid"
+                                className="rounded-xl border-slate-200 bg-white"
+                              />
+                              <p className="ml-1 text-[10px] text-slate-400">Slug auto-generated from name</p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSubcategories((list) => list.filter((_, i) => i !== index))}
+                            disabled={subcategories.length === 1}
+                            className="absolute -right-2 -top-2 h-8 w-8 rounded-full border border-slate-100 bg-white opacity-0 shadow-lg transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className="col-span-1 md:col-span-2 pt-6 border-t border-slate-100">
                   <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl w-fit">

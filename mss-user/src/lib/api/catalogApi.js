@@ -12,15 +12,19 @@ export async function fetchStepCategories(stepIdOrSlug) {
   return apiFetch(`/journey-steps/${encodeURIComponent(stepIdOrSlug)}/categories`, { revalidateSeconds: 60 });
 }
 
-export async function fetchItems(params = {}) {
+export async function fetchItems(params = {}, fetchOptions = {}) {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
-      qs.set(key, value);
+      qs.set(key, String(value));
     }
   });
 
-  return apiFetch(`/items${qs.toString() ? `?${qs.toString()}` : ""}`, { revalidateSeconds: 60 });
+  const path = `/items${qs.toString() ? `?${qs.toString()}` : ""}`;
+  return apiFetch(path, {
+    revalidateSeconds: 60,
+    ...fetchOptions,
+  });
 }
 
 export async function fetchItem(itemId) {

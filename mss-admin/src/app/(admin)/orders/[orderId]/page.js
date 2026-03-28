@@ -61,6 +61,9 @@ export default function OrderDetailsPage() {
   const [order, setOrder] = useState(null);
   const [status, setStatus] = useState("");
   const [trackingData, setTrackingData] = useState(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
 
   // Package dimension state for shipping
   const [dims, setDims] = useState({ length: 20, breadth: 15, height: 10, weight: 0.5 });
@@ -157,6 +160,52 @@ export default function OrderDetailsPage() {
       toast.error(e.message || "Tracking not available");
     } finally {
       setTrackingLoading(false);
+    }
+  }
+
+  async function handleCancelOrder() {
+    const token = getToken();
+    if (!token || !orderId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to cancel order");
+      setOrder(data.order || order);
+      setStatus(data.order?.status || status);
+      toast.success(data.message || "Order cancelled");
+    } catch (e) {
+      toast.error(e.message || "Failed to cancel order");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRefundOrder() {
+    const token = getToken();
+    if (!token || !orderId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/orders/${orderId}/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          amount: refundAmount ? Number(refundAmount) : undefined,
+          reason: refundReason,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to refund");
+      setOrder(data.order || order);
+      toast.success(data.message || "Refund initiated");
+    } catch (e) {
+      toast.error(e.message || "Failed to refund");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -456,6 +505,18 @@ export default function OrderDetailsPage() {
                       )}
                     </Button>
 
+                    {trackingData?.tracking_summary && (
+                      <div className="rounded-lg border border-[var(--border)] p-4">
+                        <div className="mb-3 text-sm font-medium">Live Shipment Summary</div>
+                        <div className="grid gap-2 text-sm">
+                          <div><span className="text-[var(--muted-foreground)]">Current Status:</span> {trackingData.tracking_summary.current_status || "—"}</div>
+                          <div><span className="text-[var(--muted-foreground)]">Expected Delivery:</span> {trackingData.tracking_summary.expected_delivery_date || "—"}</div>
+                          <div><span className="text-[var(--muted-foreground)]">Last Update:</span> {trackingData.tracking_summary.last_event_at || "—"}</div>
+                          <div><span className="text-[var(--muted-foreground)]">Last Location:</span> {trackingData.tracking_summary.last_event_location || "—"}</div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Tracking events */}
                     {trackingData && (
                       <div className="rounded-lg border border-[var(--border)] p-4">
@@ -527,6 +588,38 @@ export default function OrderDetailsPage() {
               <Button onClick={updateStatus} disabled={saving || !status} className="w-full">
                 {saving ? "Saving…" : "Save"}
               </Button>
+
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="text-sm font-medium">Cancel order</div>
+                <input
+                  placeholder="Cancel reason"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-[var(--input)] bg-transparent px-3 text-sm"
+                />
+                <Button onClick={handleCancelOrder} disabled={saving} variant="outline" className="w-full">
+                  Cancel Order
+                </Button>
+              </div>
+
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="text-sm font-medium">Refund</div>
+                <input
+                  placeholder="Amount (leave empty for full)"
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-[var(--input)] bg-transparent px-3 text-sm"
+                />
+                <input
+                  placeholder="Refund reason"
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-[var(--input)] bg-transparent px-3 text-sm"
+                />
+                <Button onClick={handleRefundOrder} disabled={saving} variant="outline" className="w-full">
+                  Initiate Refund
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

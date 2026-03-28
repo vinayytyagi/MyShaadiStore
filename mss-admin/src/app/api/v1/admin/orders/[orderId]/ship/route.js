@@ -49,6 +49,28 @@ export async function POST(request, { params }) {
       );
     }
 
+    const pickupLabels = [
+      ...new Set(
+        (Array.isArray(order.items) ? order.items : [])
+          .map((item) => String(item?.pickup_address?.label || "").trim())
+          .filter(Boolean)
+      ),
+    ];
+    if (pickupLabels.length > 1) {
+      return NextResponse.json(
+        {
+          code: "MULTI_PICKUP_NOT_SUPPORTED",
+          message:
+            "This order contains items from multiple pickup locations. Please split items into separate orders per vendor/pickup.",
+          pickup_labels: pickupLabels,
+        },
+        { status: 400 }
+      );
+    }
+    if (pickupLabels[0]) {
+      order.pickup_location_label = pickupLabels[0];
+    }
+
     /* ── Parse optional package dimensions from body ───── */
     let dimensions = {};
     try {
@@ -135,6 +157,17 @@ export async function POST(request, { params }) {
     });
   } catch (e) {
     console.error("[POST /admin/orders/[orderId]/ship]", e);
-    return NextResponse.json({ code: "INTERNAL_ERROR", message: e.message }, { status: 500 });
+    const msg = String(e?.message || "");
+    if (msg.toLowerCase().includes("shiprocket auth failed")) {
+      return NextResponse.json(
+        {
+          code: "SHIPROCKET_AUTH_FAILED",
+          message:
+            `${msg}. Please verify SHIPROCKET credentials/token in mss-admin/.env, then restart admin server.`,
+        },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ code: "INTERNAL_ERROR", message: msg || "Unexpected shipping error" }, { status: 500 });
   }
 }

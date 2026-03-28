@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOrdersCollection } from "@/lib/db";
-import { trackByAwb } from "@/lib/shiprocket";
+import { trackByAwb, trackByShipmentId } from "@/lib/shiprocket";
 
 /**
  * GET /api/v1/orders/track?order_number=MSS-123456-ABCD&phone=9876543210
@@ -51,8 +51,30 @@ export async function GET(request) {
     try {
       tracking = await trackByAwb(shipment.awb_code);
     } catch {
-      // tracking may not be available yet
+      if (shipment.shiprocket_shipment_id) {
+        try {
+          tracking = await trackByShipmentId(shipment.shiprocket_shipment_id);
+        } catch {
+          tracking = null;
+        }
+      }
     }
+
+    const trackingData = tracking?.tracking_data || {};
+    const activities = trackingData?.shipment_track_activities || trackingData?.track_activities || [];
+    const latest = Array.isArray(activities) && activities.length > 0 ? activities[0] : null;
+    const summary = {
+      current_status:
+        trackingData?.current_status ||
+        latest?.["sr-status-label"] ||
+        latest?.["sr-status"] ||
+        latest?.activity ||
+        null,
+      expected_delivery_date:
+        trackingData?.etd || trackingData?.estimated_delivery_date || trackingData?.expected_delivery_date || null,
+      last_event_at: latest?.date || null,
+      last_event_location: latest?.location || null,
+    };
 
     return NextResponse.json({
       order_number: order.order_number,
@@ -64,6 +86,7 @@ export async function GET(request) {
         shipped_at: shipment.shipped_at,
         tracking_url: shipment.tracking_url,
       },
+      tracking_summary: summary,
       tracking,
     });
   } catch (e) {

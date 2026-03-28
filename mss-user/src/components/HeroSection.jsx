@@ -3,20 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import BasketButton from "@/components/BasketButton";
 
 export default function HeroSection() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e) => {
     e.preventDefault();
     if(searchQuery.trim()) {
-      window.location.href = `/shopping?search=${encodeURIComponent(searchQuery)}`;
+      router.push(`/shopping?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
   return (
-    <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 overflow-hidden min-h-[calc(100vh-80px)]">
+    <div className="relative mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 overflow-hidden min-h-[calc(100vh-80px)]">
       
       {/* Pink vertical strip on the far left edge */}
       <div className="absolute top-[20%] left-[-16px] xl:left-0 w-4 h-[150px] bg-[#ff4f86] rounded-r-2xl" />
@@ -127,7 +129,7 @@ export default function HeroSection() {
           </button>
 
           {/* Decorative colored dots - bottom right */}
-          <div className="absolute bottom-[10%] lg:bottom-[15%] right-[0] lg:right-[5%] flex items-center gap-3 sm:gap-4 z-20">
+          <div className="absolute bottom-[10%] lg:bottom-[15%] right-0 lg:right-[5%] flex items-center gap-3 sm:gap-4 z-20">
             <div className="w-3.5 h-3.5 rounded-full border-[3px] border-[#FFC107] bg-transparent shadow-sm" />
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#4C6FFF] shadow-md" />
             <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#ff4f86] shadow-md" />

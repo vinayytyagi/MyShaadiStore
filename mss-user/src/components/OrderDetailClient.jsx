@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAuthUser } from "@/lib/authCookies";
-import { trackOrder } from "@/lib/api";
+import { getAuthToken, useAuthUser } from "@/lib/authCookies";
+import { cancelMyOrder, requestMyOrderRefund, trackOrder } from "@/lib/api";
 
 /* ── Helpers ────────────────────────────────────────── */
 function formatDate(dateStr) {
@@ -72,24 +72,25 @@ function StatusBadge({ status }) {
 }
 
 /* ── Main Component ────────────────────────────────── */
-export default function OrderDetailClient({ initialOrder = null, initialTracking = null, initialError = "" }) {
+export default function OrderDetailClient({ initialOrder = null, initialTracking = null, initialError = "", hasServerSession = false }) {
   const user = useAuthUser();
-  const [order] = useState(initialOrder);
   const [tracking, setTracking] = useState(initialTracking);
   const [loading] = useState(false);
   const [error] = useState(initialError);
   const [copied, setCopied] = useState(false);
+  const [actionState, setActionState] = useState({ loading: false, error: "", success: "" });
+  const [currentOrder, setCurrentOrder] = useState(initialOrder);
 
   useEffect(() => {
-    if (!user || !order || tracking) {
+    if (!user || !currentOrder || tracking) {
       return;
     }
-    if (order.shipment?.awb_code && user?.phone) {
-      trackOrder(order.order_number, user.phone)
+    if (currentOrder.shipment?.awb_code && user?.phone) {
+      trackOrder(currentOrder.order_number, user.phone)
         .then((t) => setTracking(t))
         .catch(() => {});
     }
-  }, [user, order, tracking]);
+  }, [user, currentOrder, tracking]);
 
   function handleCopy(text) {
     navigator.clipboard.writeText(text);
@@ -97,7 +98,7 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (!user) {
+  if (!user && !hasServerSession) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
         <div className="rounded-3xl border border-slate-100 bg-white/80 px-8 py-16 shadow-[0_8px_40px_rgba(0,0,0,0.04)] backdrop-blur">
@@ -121,7 +122,7 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
     );
   }
 
-  if (error || !order) {
+  if (error || !currentOrder) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
         <Link href="/orders" className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#ff4f86]">
@@ -134,8 +135,36 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
     );
   }
 
-  const stepIndex = getStepIndex(order.status, order.fulfillment_status);
-  const isCancelled = order.status === "Cancelled" || order.status === "Failed";
+  const stepIndex = getStepIndex(currentOrder.status, currentOrder.fulfillment_status);
+  const isCancelled = currentOrder.status === "Cancelled" || currentOrder.status === "Failed";
+  const canCancel = currentOrder.status === "Pending" || currentOrder.status === "Confirmed" || currentOrder.status === "Processing";
+  const canRefund = currentOrder.status === "Cancelled" || currentOrder.status === "Delivered";
+
+  async function onCancelOrder() {
+    const token = getAuthToken();
+    if (!token) return;
+    setActionState({ loading: true, error: "", success: "" });
+    try {
+      const res = await cancelMyOrder(token, currentOrder._id, "Customer cancelled from app");
+      setCurrentOrder(res.order || currentOrder);
+      setActionState({ loading: false, error: "", success: res.message || "Order cancelled." });
+    } catch (e) {
+      setActionState({ loading: false, error: e.message || "Failed to cancel order", success: "" });
+    }
+  }
+
+  async function onRequestRefund() {
+    const token = getAuthToken();
+    if (!token) return;
+    setActionState({ loading: true, error: "", success: "" });
+    try {
+      const res = await requestMyOrderRefund(token, currentOrder._id, "Customer requested refund");
+      setCurrentOrder(res.order || currentOrder);
+      setActionState({ loading: false, error: "", success: res.message || "Refund requested." });
+    } catch (e) {
+      setActionState({ loading: false, error: e.message || "Failed to request refund", success: "" });
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -148,20 +177,20 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-700">{order.order_number}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-700">{currentOrder.order_number}</h1>
             <button
-              onClick={() => handleCopy(order.order_number)}
+              onClick={() => handleCopy(currentOrder.order_number)}
               className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
               title="Copy order number"
             >
               {copied ? <CheckCircle /> : <CopyIcon />}
             </button>
           </div>
-          <p className="mt-1 text-sm text-slate-400">Placed on {formatDate(order.created_at)}</p>
+          <p className="mt-1 text-sm text-slate-400">Placed on {formatDate(currentOrder.created_at)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={order.status} />
-          <StatusBadge status={order.fulfillment_status || "Unfulfilled"} />
+          <StatusBadge status={currentOrder.status} />
+          <StatusBadge status={currentOrder.fulfillment_status || "Unfulfilled"} />
         </div>
       </div>
 
@@ -204,16 +233,41 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
       {/* Cancelled banner */}
       {isCancelled && (
         <div className="mt-8 rounded-2xl border border-red-100 bg-red-50 px-6 py-4 text-center">
-          <p className="font-semibold text-red-600">This order has been {order.status.toLowerCase()}.</p>
+          <p className="font-semibold text-red-600">This order has been {currentOrder.status.toLowerCase()}.</p>
+        </div>
+      )}
+
+      {(canCancel || canRefund) && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {canCancel && (
+            <button
+              onClick={onCancelOrder}
+              disabled={actionState.loading}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"
+            >
+              {actionState.loading ? "Please wait..." : "Cancel Order"}
+            </button>
+          )}
+          {canRefund && (
+            <button
+              onClick={onRequestRefund}
+              disabled={actionState.loading}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              {actionState.loading ? "Please wait..." : "Request Refund"}
+            </button>
+          )}
+          {actionState.error ? <p className="text-sm text-red-600">{actionState.error}</p> : null}
+          {actionState.success ? <p className="text-sm text-emerald-700">{actionState.success}</p> : null}
         </div>
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Items */}
         <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur lg:col-span-2">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Items ({order.items?.length || 0})</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Items ({currentOrder.items?.length || 0})</h2>
           <div className="mt-4 divide-y divide-slate-50">
-            {(order.items || []).map((item, i) => (
+            {(currentOrder.items || []).map((item, i) => (
               <div key={i} className="flex items-center gap-4 py-4">
                 {item.image ? (
                   <img src={item.image} alt={item.name} className="h-16 w-16 shrink-0 rounded-2xl border border-slate-100 object-cover" />
@@ -238,7 +292,7 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
           {/* Total */}
           <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-4">
             <p className="font-semibold text-slate-600">Total</p>
-            <p className="text-xl font-semibold text-slate-800">{formatCurrency(order.total_amount)}</p>
+            <p className="text-xl font-semibold text-slate-800">{formatCurrency(currentOrder.total_amount)}</p>
           </div>
         </div>
 
@@ -247,15 +301,15 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
           {/* Shipping Info */}
           <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Shipping Address</h2>
-            {order.shipping_address ? (
+            {currentOrder.shipping_address ? (
               <div className="mt-3 space-y-1 text-sm text-slate-600">
-                {order.shipping_address.line1 && <p>{order.shipping_address.line1}</p>}
-                {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+                {currentOrder.shipping_address.line1 && <p>{currentOrder.shipping_address.line1}</p>}
+                {currentOrder.shipping_address.line2 && <p>{currentOrder.shipping_address.line2}</p>}
                 <p>
-                  {[order.shipping_address.city, order.shipping_address.state].filter(Boolean).join(", ")}
+                  {[currentOrder.shipping_address.city, currentOrder.shipping_address.state].filter(Boolean).join(", ")}
                 </p>
-                {order.shipping_address.pincode && (
-                  <p className="font-semibold">{order.shipping_address.pincode}</p>
+                {currentOrder.shipping_address.pincode && (
+                  <p className="font-semibold">{currentOrder.shipping_address.pincode}</p>
                 )}
               </div>
             ) : (
@@ -264,36 +318,36 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
           </div>
 
           {/* Shipment info */}
-          {order.shipment && (
+          {currentOrder.shipment && (
             <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Shipment</h2>
               <div className="mt-3 space-y-2 text-sm">
-                {order.shipment.courier_name && (
+                {currentOrder.shipment.courier_name && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Courier</span>
-                    <span className="font-semibold text-slate-700">{order.shipment.courier_name}</span>
+                    <span className="font-semibold text-slate-700">{currentOrder.shipment.courier_name}</span>
                   </div>
                 )}
-                {order.shipment.awb_code && (
+                {currentOrder.shipment.awb_code && (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">AWB</span>
                     <button
-                      onClick={() => handleCopy(order.shipment.awb_code)}
+                      onClick={() => handleCopy(currentOrder.shipment.awb_code)}
                       className="flex cursor-pointer items-center gap-1 font-mono text-sm font-semibold text-[#ff4f86] transition hover:text-[#ff3d79]"
                     >
-                      {order.shipment.awb_code} <CopyIcon />
+                      {currentOrder.shipment.awb_code} <CopyIcon />
                     </button>
                   </div>
                 )}
-                {order.shipment.shipped_at && (
+                {currentOrder.shipment.shipped_at && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Shipped</span>
-                    <span className="font-semibold text-slate-700">{formatDate(order.shipment.shipped_at)}</span>
+                    <span className="font-semibold text-slate-700">{formatDate(currentOrder.shipment.shipped_at)}</span>
                   </div>
                 )}
-                {order.shipment.tracking_url && (
+                {currentOrder.shipment.tracking_url && (
                   <a
-                    href={order.shipment.tracking_url}
+                    href={currentOrder.shipment.tracking_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 block w-full rounded-xl bg-linear-to-r from-[#ff4f86] to-[#ff8fb1] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-[0_12px_30px_rgba(255,79,134,0.25)] transition hover:shadow-[0_16px_40px_rgba(255,79,134,0.35)]"
@@ -309,6 +363,18 @@ export default function OrderDetailClient({ initialOrder = null, initialTracking
           {tracking?.tracking?.tracking_data?.shipment_track_activities && (
             <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Tracking Updates</h2>
+              {tracking?.tracking_summary && (
+                <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-xs text-slate-400">Current Status</p>
+                    <p className="mt-0.5 text-sm font-bold text-slate-700">{tracking.tracking_summary.current_status || "—"}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-xs text-slate-400">Expected Delivery</p>
+                    <p className="mt-0.5 text-sm font-bold text-slate-700">{tracking.tracking_summary.expected_delivery_date || "—"}</p>
+                  </div>
+                </div>
+              )}
               <div className="mt-4 space-y-0">
                 {tracking.tracking.tracking_data.shipment_track_activities.slice(0, 10).map((activity, i) => (
                   <div key={i} className="relative flex gap-3 pb-4">

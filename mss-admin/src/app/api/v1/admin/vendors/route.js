@@ -3,6 +3,27 @@ import bcrypt from "bcryptjs";
 import { requireAdmin } from "@/lib/auth";
 import { getVendorCollection } from "@/lib/db";
 
+function normalizePickupAddresses(input) {
+  const list = Array.isArray(input) ? input : [];
+  return list
+    .map((addr, idx) => ({
+      label: String(addr?.label || `Pickup ${idx + 1}`).trim(),
+      line1: String(addr?.line1 || "").trim(),
+      line2: String(addr?.line2 || "").trim() || null,
+      city: String(addr?.city || "").trim(),
+      state: String(addr?.state || "").trim(),
+      pincode: String(addr?.pincode || "").trim(),
+      contact_name: String(addr?.contact_name || "").trim() || null,
+      contact_phone: String(addr?.contact_phone || "").trim() || null,
+      is_default: addr?.is_default === true,
+    }))
+    .filter((addr) => addr.line1 && addr.city && addr.state && addr.pincode)
+    .map((addr, idx, arr) => ({
+      ...addr,
+      is_default: arr.some((item) => item.is_default) ? addr.is_default : idx === 0,
+    }));
+}
+
 export async function GET(request) {
   const err = requireAdmin(request);
   if (err) return err;
@@ -72,6 +93,7 @@ export async function POST(request) {
       max_budget: body.maxBudget ?? body.max_budget ?? null,
       commission_percentage: body.commissionPercentage ?? body.commission_percentage ?? null,
       status: body.status || "Active",
+      pickup_addresses: normalizePickupAddresses(body.pickup_addresses || body.pickupAddresses),
       email,
       passwordHash,
       created_at: new Date(),

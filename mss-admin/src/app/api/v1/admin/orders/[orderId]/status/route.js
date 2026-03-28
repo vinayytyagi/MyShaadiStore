@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/lib/auth";
 import { getOrdersCollection } from "@/lib/db";
+import { ORDER_STATUS } from "@/lib/orderLifecycle";
 
 export async function PUT(request, { params }) {
   const err = requireAdmin(request);
@@ -13,6 +14,10 @@ export async function PUT(request, { params }) {
     }
     const body = await request.json();
     const status = body.status;
+    const allowed = Object.values(ORDER_STATUS);
+    if (!allowed.includes(status)) {
+      return NextResponse.json({ code: "BAD_REQUEST", message: "Invalid order status" }, { status: 400 });
+    }
     const col = await getOrdersCollection();
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(orderId) },

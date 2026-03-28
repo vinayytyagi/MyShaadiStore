@@ -65,8 +65,28 @@ export async function GET(request, { params }) {
       );
     }
 
+    const trackingDataRaw = trackingData?.tracking_data || {};
+    const activities = trackingDataRaw?.shipment_track_activities || trackingDataRaw?.track_activities || [];
+    const latest = Array.isArray(activities) && activities.length > 0 ? activities[0] : null;
+    const summary = {
+      current_status:
+        trackingDataRaw?.current_status ||
+        latest?.["sr-status-label"] ||
+        latest?.["sr-status"] ||
+        latest?.activity ||
+        null,
+      expected_delivery_date:
+        trackingDataRaw?.etd ||
+        trackingDataRaw?.estimated_delivery_date ||
+        trackingDataRaw?.expected_delivery_date ||
+        null,
+      last_event_at: latest?.date || null,
+      last_event_location: latest?.location || null,
+    };
+
     return NextResponse.json({
       shipment,
+      tracking_summary: summary,
       tracking: trackingData,
     });
   } catch (e) {

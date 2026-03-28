@@ -38,13 +38,20 @@ export async function POST(request) {
       );
     }
     const parentCategoryId = body.parentCategoryId ?? body.parent_category_id ?? null;
+    const imageUrl = body.image_url || body.imageUrl || null;
+    if (!parentCategoryId && !String(imageUrl || "").trim()) {
+      return NextResponse.json(
+        { code: "BAD_REQUEST", message: "Image is required for top-level category" },
+        { status: 400 }
+      );
+    }
     const doc = {
       journey_step_id: journeyStepId,
       name: body.name || "",
       slug: body.slug || (body.name || "").toLowerCase().replace(/\s+/g, "-") || "",
       description: body.description || null,
       parent_category_id: parentCategoryId || null,
-      image_url: body.image_url || null,
+      image_url: imageUrl,
       is_active: body.is_active !== false,
       created_at: new Date(),
       updated_at: new Date(),

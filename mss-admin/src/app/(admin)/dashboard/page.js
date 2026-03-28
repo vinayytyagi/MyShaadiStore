@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   IndianRupee, 
   Users, 
@@ -45,6 +46,7 @@ function getToken() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -273,7 +275,7 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {data?.recentOrders?.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => (window.location.href = `/orders/${order.id}`)}>
+                  <TableRow key={order.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => router.push(`/orders/${order.id}`)}>
                     <TableCell className="font-medium text-slate-900">{order.order_number}</TableCell>
                     <TableCell className="text-slate-600">{order.customer_name || 'Anonymous'}</TableCell>
                     <TableCell className="text-slate-500 text-xs">

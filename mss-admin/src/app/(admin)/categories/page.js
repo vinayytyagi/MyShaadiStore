@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FolderTree, Plus, Pencil, MoreHorizontal, Layers, LayoutGrid, Search, Globe, ChevronRight } from "lucide-react";
@@ -83,15 +83,36 @@ export default function CategoriesPage() {
     })),
   ];
 
-  const step = steps.find((s) => s.step_id === stepId);
-  const isShopping = step?.slug === "shopping";
   const stepNameById = new Map(steps.map((s) => [s.step_id, s.title]));
 
-  const filtered = categories.filter((c) => {
-    const q = search.trim().toLowerCase();
+  const { parentCategories, childrenByParentId } = useMemo(() => {
+    const parents = categories.filter((c) => !c.parent_category_id);
+    const m = new Map();
+    for (const c of categories) {
+      if (!c.parent_category_id) continue;
+      const arr = m.get(c.parent_category_id) || [];
+      arr.push(c);
+      m.set(c.parent_category_id, arr);
+    }
+    return { parentCategories: parents, childrenByParentId: m };
+  }, [categories]);
+
+  const q = search.trim().toLowerCase();
+  const filteredParents = parentCategories.filter((p) => {
     if (!q) return true;
-    return `${c.name} ${c.slug}`.toLowerCase().includes(q);
+    const pHit = `${p.name} ${p.slug || ""}`.toLowerCase().includes(q);
+    const subs = childrenByParentId.get(p.category_id) || [];
+    const subHit = subs.some((c) => `${c.name} ${c.slug || ""}`.toLowerCase().includes(q));
+    return pHit || subHit;
   });
+
+  function visibleSubcategories(parent) {
+    const subs = childrenByParentId.get(parent.category_id) || [];
+    if (!q) return subs;
+    const parentHit = `${parent.name} ${parent.slug || ""}`.toLowerCase().includes(q);
+    if (parentHit) return subs;
+    return subs.filter((c) => `${c.name} ${c.slug || ""}`.toLowerCase().includes(q));
+  }
 
   return (
     <div className="space-y-8 pb-10 px-1">
@@ -159,105 +180,161 @@ export default function CategoriesPage() {
                 <Table>
                   <TableHeader className="bg-slate-50/50">
                     <TableRow>
-                      <TableHead className="font-semibold text-slate-700 w-[300px]">Category Identity</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Journey Phase</TableHead>
-                      {isShopping && <TableHead className="font-semibold text-slate-700">Parent Context</TableHead>}
-                      <TableHead className="font-semibold text-slate-700">System Slug</TableHead>
+                      <TableHead className="font-semibold text-slate-700 w-[300px]">Category</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Journey phase</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Slug (auto)</TableHead>
                       <TableHead className="font-semibold text-slate-700">Status</TableHead>
                       <TableHead className="text-right w-[80px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.length === 0 ? (
+                    {filteredParents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isShopping ? 6 : 5} className="h-32 text-center text-slate-400 italic">
+                        <TableCell colSpan={5} className="h-32 text-center text-slate-400 italic">
                           {categories.length === 0 ? "No categories yet. Click 'Add New' to begin." : "No matching results found."}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filtered.map((c) => (
-                        <TableRow key={c.category_id} className="hover:bg-slate-50/30 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center">
-                                {c.image_url ? (
-                                  <img src={c.image_url} alt={c.name} className="h-full w-full object-cover" />
-                                ) : (
-                                  <LayoutGrid className="h-5 w-5 text-slate-300" />
-                                )}
-                              </div>
-                              <span className="font-bold text-slate-800">{c.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-medium">
-                              {stepNameById.get(c.journey_step_id) || "Global"}
-                            </Badge>
-                          </TableCell>
-                          {isShopping && (
+                      filteredParents.map((parent) => {
+                        const subs = visibleSubcategories(parent);
+                        return (
+                        <Fragment key={parent.category_id}>
+                          <TableRow className="hover:bg-slate-50/30 transition-colors">
                             <TableCell>
-                              {c.parent_category_id ? (
-                                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                                  <Layers className="h-3.5 w-3.5 text-slate-400" />
-                                  {categories.find((p) => p.category_id === c.parent_category_id)?.name || "Parent Category"}
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                                  {parent.image_url ? (
+                                    <img src={parent.image_url} alt={parent.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <LayoutGrid className="h-5 w-5 text-slate-300" />
+                                  )}
                                 </div>
-                              ) : (
-                                <span className="text-xs font-bold text-pink-400 uppercase tracking-tighter">Root Level</span>
-                              )}
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-800">{parent.name}</span>
+                                  {subs.length > 0 ? (
+                                    <p className="text-[11px] font-medium text-slate-400">
+                                      {subs.length} subcategor{subs.length === 1 ? "y" : "ies"} — edit to manage
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
                             </TableCell>
-                          )}
-                          <TableCell>
-                            <div className="flex items-center gap-1.5 font-mono text-xs text-slate-400 lowercase">
-                              <Globe className="h-3 w-3" />
-                              {c.slug}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "flex items-center gap-1.5 px-2 py-0.5 rounded-full font-black text-[10px] transition-all shadow-sm",
-                                c.is_active 
-                                  ? "border-emerald-200/60 bg-emerald-100/80 text-emerald-700 shadow-emerald-50" 
-                                  : "bg-slate-100 text-slate-500 border-slate-200"
-                              )}
+                            <TableCell>
+                              <Badge variant="outline" className="border-slate-200 bg-white font-medium text-slate-600">
+                                {stepNameById.get(parent.journey_step_id) || "—"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5 font-mono text-xs lowercase text-slate-400">
+                                <Globe className="h-3 w-3 shrink-0" />
+                                {parent.slug || "—"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 font-black text-[10px] shadow-sm transition-all",
+                                  parent.is_active
+                                    ? "border-emerald-200/60 bg-emerald-100/80 text-emerald-700 shadow-emerald-50"
+                                    : "border-slate-200 bg-slate-100 text-slate-500",
+                                )}
+                              >
+                                {parent.is_active ? "LIVE" : "DRAFT"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0 hover:bg-slate-100">
+                                    <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48 rounded-xl border-slate-100 p-1 shadow-lg">
+                                  <DropdownMenuLabel className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                                    Actions
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator className="bg-slate-50" />
+                                  <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50">
+                                    <Link href={`/categories/${parent.category_id}/edit`} className="flex w-full cursor-pointer items-center gap-2">
+                                      <Pencil className="h-4 w-4 text-slate-500" />
+                                      Edit category
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50">
+                                    <Link href={`/items?categoryId=${parent.category_id}`} className="flex w-full cursor-pointer items-center gap-2">
+                                      <ChevronRight className="h-4 w-4 text-slate-500" />
+                                      View items
+                                    </Link>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                          {subs.map((child) => (
+                            <TableRow
+                              key={child.category_id}
+                              className="border-l-2 border-l-pink-200/60 bg-slate-50/40 hover:bg-slate-50/80"
                             >
-                              {c.is_active && (
-                                <div className="relative flex h-1.5 w-1.5">
-                                  <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                                  <div className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                              <TableCell>
+                                <div className="flex items-center gap-3 pl-8">
+                                  <Layers className="h-4 w-4 shrink-0 text-pink-400" />
+                                  <span className="text-sm font-semibold text-slate-700">{child.name}</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Subcategory</span>
                                 </div>
-                              )}
-                              {c.is_active ? "LIVE" : "DRAFT"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                                  <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48 p-1 rounded-xl shadow-lg border-slate-100">
-                                <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-wider px-2 py-2">Category Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-slate-50" />
-                                <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50 transition-colors">
-                                  <Link href={`/categories/${c.category_id}/edit`} className="flex items-center gap-2 cursor-pointer w-full">
-                                    <Pencil className="h-4 w-4 text-slate-500" />
-                                    Edit Settings
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50 transition-colors">
-                                  <Link href={`/items?categoryId=${c.category_id}`} className="flex items-center gap-2 cursor-pointer w-full">
-                                    <ChevronRight className="h-4 w-4 text-slate-500" />
-                                    View Related Items
-                                  </Link>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="border-slate-200 bg-white text-xs font-medium text-slate-500">
+                                  {stepNameById.get(child.journey_step_id) || "—"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5 font-mono text-xs lowercase text-slate-400">
+                                  <Globe className="h-3 w-3 shrink-0" />
+                                  {child.slug || "—"}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 font-black text-[10px]",
+                                    child.is_active
+                                      ? "border-emerald-200/60 bg-emerald-100/80 text-emerald-700"
+                                      : "border-slate-200 bg-slate-100 text-slate-500",
+                                  )}
+                                >
+                                  {child.is_active ? "LIVE" : "DRAFT"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 rounded-full p-0 hover:bg-slate-100">
+                                      <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48 rounded-xl border-slate-100 p-1 shadow-lg">
+                                    <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50">
+                                      <Link href={`/categories/${child.category_id}/edit`} className="flex w-full cursor-pointer items-center gap-2">
+                                        <Pencil className="h-4 w-4 text-slate-500" />
+                                        Edit subcategory
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild className="rounded-lg focus:bg-pink-50">
+                                      <Link href={`/items?categoryId=${parent.category_id}`} className="flex w-full cursor-pointer items-center gap-2">
+                                        <ChevronRight className="h-4 w-4 text-slate-500" />
+                                        Items (parent)
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </Fragment>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

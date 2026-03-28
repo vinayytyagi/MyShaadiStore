@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrdersCollection } from "@/lib/db";
 import { verifyWebhookSignature } from "@/lib/razorpay";
+import { ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from "@/lib/orderLifecycle";
 
 /**
  * POST /api/v1/orders/razorpay-webhook
@@ -41,28 +42,22 @@ export async function POST(request) {
     const event = JSON.parse(rawBody);
     const eventType = event?.event;
     const paymentEntity = event?.payload?.payment?.entity;
-
-    if (!paymentEntity) {
-      return NextResponse.json({ status: "ignored", reason: "no payment entity" });
-    }
-
-    const razorpay_order_id = paymentEntity.order_id;
-    const razorpay_payment_id = paymentEntity.id;
-
-    if (!razorpay_order_id) {
-      return NextResponse.json({ status: "ignored", reason: "no order_id in payload" });
-    }
+    const razorpay_order_id = paymentEntity?.order_id;
+    const razorpay_payment_id = paymentEntity?.id;
 
     const col = await getOrdersCollection();
 
     /* ── payment.captured ──────────────────────────────── */
     if (eventType === "payment.captured") {
+      if (!paymentEntity || !razorpay_order_id) {
+        return NextResponse.json({ status: "ignored", reason: "invalid payment.captured payload" });
+      }
       await col.updateOne(
         { razorpay_order_id },
         {
           $set: {
-            payment_status: "Paid",
-            status: "Confirmed",
+            payment_status: PAYMENT_STATUS.PAID,
+            status: ORDER_STATUS.CONFIRMED,
             razorpay_payment_id,
             paid_at: new Date(),
             updated_at: new Date(),
@@ -75,18 +70,44 @@ export async function POST(request) {
 
     /* ── payment.failed ────────────────────────────────── */
     if (eventType === "payment.failed") {
+      if (!paymentEntity || !razorpay_order_id) {
+        return NextResponse.json({ status: "ignored", reason: "invalid payment.failed payload" });
+      }
       await col.updateOne(
         { razorpay_order_id },
         {
           $set: {
-            payment_status: "Failed",
-            status: "Payment Failed",
+            payment_status: PAYMENT_STATUS.FAILED,
+            status: ORDER_STATUS.PAYMENT_FAILED,
             razorpay_payment_id,
             updated_at: new Date(),
           },
         }
       );
       console.log(`[razorpay-webhook] payment.failed → order ${razorpay_order_id} marked Failed.`);
+      return NextResponse.json({ status: "ok" });
+    }
+
+    if (eventType === "refund.processed") {
+      const refundEntity = event?.payload?.refund?.entity;
+      const paymentId = refundEntity?.payment_id;
+      if (paymentId) {
+        await col.updateOne(
+          { razorpay_payment_id: paymentId },
+          {
+            $set: {
+              payment_status: PAYMENT_STATUS.REFUNDED,
+              refund: {
+                refund_id: refundEntity.id,
+                amount: Number(refundEntity.amount || 0) / 100,
+                status: REFUND_STATUS.PROCESSED,
+                processed_at: new Date(),
+              },
+              updated_at: new Date(),
+            },
+          }
+        );
+      }
       return NextResponse.json({ status: "ok" });
     }
 

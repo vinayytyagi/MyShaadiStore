@@ -75,9 +75,13 @@ export async function POST(request) {
       listing_start_at: listingStartAt ? new Date(listingStartAt) : null,
       listing_end_at: listingEndAt ? new Date(listingEndAt) : null,
       policies: {
+        cancellable: policies.cancellable !== false,
+        refundable: policies.refundable === true,
         returnable: !!policies.returnable,
         replaceable: !!policies.replaceable,
         exchangeable: !!policies.exchangeable,
+        cancellation_window_hours: Number(policies.cancellation_window_hours) || 24,
+        refund_window_days: Number(policies.refund_window_days) || 0,
         return_window_days: policies.return_window_days ?? null,
         return_policy_text: policies.return_policy_text ?? null,
         exchange_policy_text: policies.exchange_policy_text ?? null,

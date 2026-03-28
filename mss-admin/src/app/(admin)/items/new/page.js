@@ -48,8 +48,12 @@ export default function NewItemPage() {
     discount_starts_at: "",
     discount_ends_at: "",
     returnable: false,
+    cancellable: true,
+    refundable: false,
     replaceable: false,
     exchangeable: false,
+    cancellation_window_hours: "24",
+    refund_window_days: "",
     return_window_days: "",
     return_policy_text: "",
     exchange_policy_text: "",
@@ -136,9 +140,13 @@ export default function NewItemPage() {
             ends_at: form.discount_ends_at ? new Date(form.discount_ends_at).toISOString() : null,
           },
           policies: {
+            cancellable: !!form.cancellable,
+            refundable: !!form.refundable,
             returnable: !!form.returnable,
             replaceable: !!form.replaceable,
             exchangeable: !!form.exchangeable,
+            cancellation_window_hours: form.cancellation_window_hours ? Number(form.cancellation_window_hours) : 24,
+            refund_window_days: form.refund_window_days ? Number(form.refund_window_days) : 0,
             return_window_days: form.return_window_days ? Number(form.return_window_days) : null,
             return_policy_text: form.return_policy_text || null,
             exchange_policy_text: form.exchange_policy_text || null,
@@ -318,6 +326,14 @@ export default function NewItemPage() {
               <CardContent className="space-y-3 pt-0">
                 <div className="flex flex-wrap gap-4 text-sm">
                   <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={!!form.cancellable} onChange={(e) => setForm((f) => ({ ...f, cancellable: e.target.checked }))} />
+                    Cancellable
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={!!form.refundable} onChange={(e) => setForm((f) => ({ ...f, refundable: e.target.checked }))} />
+                    Refundable
+                  </label>
+                  <label className="flex items-center gap-2">
                     <input type="checkbox" checked={!!form.returnable} onChange={(e) => setForm((f) => ({ ...f, returnable: e.target.checked }))} />
                     Returnable
                   </label>
@@ -329,6 +345,14 @@ export default function NewItemPage() {
                     <input type="checkbox" checked={!!form.exchangeable} onChange={(e) => setForm((f) => ({ ...f, exchangeable: e.target.checked }))} />
                     Exchangeable
                   </label>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cancellation window (hours)</Label>
+                  <Input type="number" min="0" value={form.cancellation_window_hours} onChange={(e) => setForm((f) => ({ ...f, cancellation_window_hours: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Refund window (days)</Label>
+                  <Input type="number" min="0" value={form.refund_window_days} onChange={(e) => setForm((f) => ({ ...f, refund_window_days: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Return window (days)</Label>

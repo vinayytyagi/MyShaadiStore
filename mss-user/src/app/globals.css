@@ -17,6 +17,7 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -60,4 +61,30 @@ input::placeholder {
 .no-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Themed scrollbars (category / subcategory panels) */
+.scrollbar-themed {
+  scrollbar-width: thin;
+  scrollbar-color: #f9a8c9 #fff1f6;
+}
+
+.scrollbar-themed::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-themed::-webkit-scrollbar-track {
+  background: #fff1f6;
+  border-radius: 9999px;
+}
+
+.scrollbar-themed::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff8fb8, #ff4f86);
+  border-radius: 9999px;
+  border: 2px solid #fff1f6;
+}
+
+.scrollbar-themed::-webkit-scrollbar-thumb:hover {
+  background: #ff3d79;
 }

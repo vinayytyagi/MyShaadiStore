@@ -16,6 +16,12 @@ export default async function OrdersPageServer() {
     }
   }
 
-  return <MyOrdersClient initialOrders={initialOrders} initialError={initialError} />;
+  return (
+    <MyOrdersClient
+      initialOrders={initialOrders}
+      initialError={initialError}
+      hasServerSession={Boolean(token)}
+    />
+  );
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Eye, 
   FileText, 
@@ -39,6 +40,7 @@ function getToken() {
 }
 
 export default function QuotationRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -124,7 +126,7 @@ export default function QuotationRequestsPage() {
                     </TableRow>
                   ) : (
                     filtered.map((r) => (
-                      <TableRow key={r.quotation_request_id} className="hover:bg-slate-50/30 transition-colors group cursor-pointer" onClick={() => (window.location.href=`/quotation-requests/${r.quotation_request_id}`)}>
+                      <TableRow key={r.quotation_request_id} className="hover:bg-slate-50/30 transition-colors group cursor-pointer" onClick={() => router.push(`/quotation-requests/${r.quotation_request_id}`)}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold border border-slate-200">

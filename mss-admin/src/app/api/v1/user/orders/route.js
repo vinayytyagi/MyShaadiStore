@@ -30,7 +30,7 @@ export async function GET(request) {
 
     // Strip sensitive fields
     const cleaned = orders.map((o) => ({
-      _id: o._id,
+      _id: o._id.toString(),
       order_number: o.order_number,
       status: o.status,
       payment_status: o.payment_status,
@@ -47,6 +47,8 @@ export async function GET(request) {
             tracking_url: o.shipment.tracking_url,
           }
         : null,
+      cancellation: o.cancellation || null,
+      refund: o.refund || null,
       created_at: o.created_at,
     }));
 

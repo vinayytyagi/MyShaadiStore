@@ -47,6 +47,7 @@ const statusColors = {
   Delivered: "bg-green-50 text-green-800 border-green-200",
   Cancelled: "bg-red-50 text-red-700 border-red-200",
   Failed: "bg-red-50 text-red-600 border-red-200",
+  Refunded: "bg-violet-50 text-violet-700 border-violet-200",
 };
 
 function StatusBadge({ status }) {
@@ -85,14 +86,14 @@ function formatCurrency(amount) {
 }
 
 /* ── Main Component ────────────────────────────────────── */
-export default function MyOrdersClient({ initialOrders = [], initialError = "" }) {
+export default function MyOrdersClient({ initialOrders = [], initialError = "", hasServerSession = false }) {
   const user = useAuthUser();
   const [orders] = useState(initialOrders);
   const [loading] = useState(false);
   const [error] = useState(initialError);
 
   /* Not logged in */
-  if (!user) {
+  if (!user && !hasServerSession) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
         <div className="rounded-3xl border border-slate-100 bg-white/80 px-8 py-16 shadow-[0_8px_40px_rgba(0,0,0,0.04)] backdrop-blur">
@@ -181,6 +182,7 @@ export default function MyOrdersClient({ initialOrders = [], initialError = "" }
               <div className="flex items-center gap-2">
                 <StatusBadge status={order.status} />
                 <FulfillmentBadge status={order.fulfillment_status} />
+                {order.refund?.status ? <StatusBadge status={`Refund: ${order.refund.status}`} /> : null}
               </div>
             </div>
 

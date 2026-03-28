@@ -6,5 +6,7 @@ export const metadata = {
 };
 
 export default function HomePage() {
-  return <HomePageServer />;
+  return (
+  <HomePageServer />
+  );
 }

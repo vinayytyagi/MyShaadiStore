@@ -1,7 +1,5 @@
 "use client";
 
-import { useAuthUser } from "@/lib/authCookies";
-
 function formatAmount(value) {
   const amount = Number(value || 0);
   if (!amount) return "—";
@@ -11,12 +9,15 @@ function formatAmount(value) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(amount);
 }
 
-export default function BudgetBadge({ stepId, defaultBudget = 0 }) {
-  const user = useAuthUser();
-  if (!user) return <>{formatAmount(defaultBudget)}</>;
-  
-  const onboarding = user?.onboarding || {};
-  const allocations = Array.isArray(onboarding.budget_allocations) ? onboarding.budget_allocations : [];
-  const current = allocations.find((item) => item.step_id === stepId);
-  return <>{formatAmount(current?.amount ?? defaultBudget)}</>;
+export default function BudgetBadge({ effectiveCap, defaultBudget = 0, noLimit = false }) {
+  if (noLimit) {
+    return <>All prices</>;
+  }
+  if (effectiveCap === 0) {
+    return <>Free only</>;
+  }
+  if (effectiveCap != null && Number(effectiveCap) > 0) {
+    return <>{formatAmount(effectiveCap)}</>;
+  }
+  return <>{formatAmount(defaultBudget)}</>;
 }

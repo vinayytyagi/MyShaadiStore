@@ -40,6 +40,17 @@ export async function createRazorpayOrder(amountInPaise, currency = "INR", recei
   });
 }
 
+export async function createRazorpayRefund(paymentId, amountInPaise, notes = {}) {
+  const rz = getInstance();
+  const payload = {
+    notes,
+  };
+  if (Number(amountInPaise) > 0) {
+    payload.amount = Number(amountInPaise);
+  }
+  return rz.payments.refund(paymentId, payload);
+}
+
 /**
  * Verify the payment signature returned by Razorpay Checkout.
  *

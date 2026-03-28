@@ -43,6 +43,19 @@ export default function NewVendorPage() {
     commission_percentage: "",
     status: "Active",
     image_url: "",
+    pickup_addresses: [
+      {
+        label: "Primary",
+        line1: "",
+        line2: "",
+        city: "",
+        state: "",
+        pincode: "",
+        contact_name: "",
+        contact_phone: "",
+        is_default: true,
+      },
+    ],
   });
 
   async function onSubmit(e) {
@@ -63,6 +76,7 @@ export default function NewVendorPage() {
         status: form.status,
         description: form.description || null, // Added description to body
         image_url: form.image_url || null, // Added image_url to body
+        pickup_addresses: form.pickup_addresses,
       };
 
       const res = await fetch(`${API_BASE}/admin/vendors`, {
@@ -257,6 +271,60 @@ export default function NewVendorPage() {
                       <option value="Inactive">Under Review</option>
                     </select>
                  </div>
+              </div>
+
+              <div className="space-y-4 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label className="ml-1 text-sm font-medium text-slate-700">Pickup Addresses</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        pickup_addresses: [
+                          ...(f.pickup_addresses || []),
+                          {
+                            label: `Pickup ${(f.pickup_addresses || []).length + 1}`,
+                            line1: "",
+                            line2: "",
+                            city: "",
+                            state: "",
+                            pincode: "",
+                            contact_name: "",
+                            contact_phone: "",
+                            is_default: false,
+                          },
+                        ],
+                      }))
+                    }
+                  >
+                    Add Pickup
+                  </Button>
+                </div>
+                {(form.pickup_addresses || []).map((addr, idx) => (
+                  <div key={idx} className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-3">
+                    <Input placeholder="Label" value={addr.label} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, label: e.target.value } : p) }))} />
+                    <Input placeholder="Address line 1" value={addr.line1} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, line1: e.target.value } : p) }))} />
+                    <Input placeholder="Address line 2" value={addr.line2} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, line2: e.target.value } : p) }))} />
+                    <Input placeholder="City" value={addr.city} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, city: e.target.value } : p) }))} />
+                    <Input placeholder="State" value={addr.state} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, state: e.target.value } : p) }))} />
+                    <Input placeholder="Pincode" value={addr.pincode} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, pincode: e.target.value } : p) }))} />
+                    <Input placeholder="Contact name" value={addr.contact_name} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, contact_name: e.target.value } : p) }))} />
+                    <Input placeholder="Contact phone" value={addr.contact_phone} onChange={(e) => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => i === idx ? { ...p, contact_phone: e.target.value } : p) }))} />
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={addr.is_default} onChange={() => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.map((p, i) => ({ ...p, is_default: i === idx })) }))} />
+                        Default
+                      </label>
+                      {(form.pickup_addresses || []).length > 1 && (
+                        <Button type="button" variant="ghost" onClick={() => setForm((f) => ({ ...f, pickup_addresses: f.pickup_addresses.filter((_, i) => i !== idx).map((p, i) => ({ ...p, is_default: i === 0 ? true : p.is_default })) }))}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
 
             </div>

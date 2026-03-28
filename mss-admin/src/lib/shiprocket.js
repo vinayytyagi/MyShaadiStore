@@ -13,6 +13,7 @@
 const SR_BASE = "https://apiv2.shiprocket.in/v1/external";
 const SR_EMAIL = process.env.SHIPROCKET_EMAIL || "";
 const SR_PASSWORD = process.env.SHIPROCKET_PASSWORD || "";
+const SR_TOKEN = process.env.SHIPROCKET_TOKEN || "";
 const SR_PICKUP_LOCATION = process.env.SHIPROCKET_PICKUP_LOCATION || "Primary";
 
 /* ── Token cache (in-memory, survives across requests in serverless cold starts) ── */
@@ -24,13 +25,14 @@ let _tokenExpiresAt = 0;  // epoch ms
  * Token is valid for 10 days; we cache it for 9 days to be safe.
  */
 export async function getShiprocketToken() {
+  if (SR_TOKEN) return SR_TOKEN;
   const now = Date.now();
   if (_cachedToken && now < _tokenExpiresAt) {
     return _cachedToken;
   }
 
   if (!SR_EMAIL || !SR_PASSWORD) {
-    throw new Error("SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD must be set in .env");
+    throw new Error("Set SHIPROCKET_TOKEN or SHIPROCKET_EMAIL and SHIPROCKET_PASSWORD in mss-admin/.env");
   }
 
   const res = await fetch(`${SR_BASE}/auth/login`, {
@@ -41,7 +43,7 @@ export async function getShiprocketToken() {
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Shiprocket auth failed: ${err}`);
+    throw new Error(`Shiprocket auth failed (email: ${SR_EMAIL}): ${err}`);
   }
 
   const data = await res.json();
@@ -116,10 +118,15 @@ export async function createShiprocketOrder(order, opts = {}) {
 
   const nameParts = String(customer.name || "Customer").split(" ");
 
+  const pickupLocation =
+    String(order?.pickup_location_label || "").trim() ||
+    String(items.find((i) => i?.pickup_address?.label)?.pickup_address?.label || "").trim() ||
+    SR_PICKUP_LOCATION;
+
   const payload = {
     order_id: order.order_number || order._id?.toString(),
     order_date: orderDate,
-    pickup_location: SR_PICKUP_LOCATION,
+    pickup_location: pickupLocation,
     channel_id: "",
     comment: order.notes || "",
     billing_customer_name: nameParts[0] || "Customer",

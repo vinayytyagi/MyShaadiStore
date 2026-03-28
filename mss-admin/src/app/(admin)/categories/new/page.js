@@ -35,14 +35,11 @@ export default function NewCategoryPage() {
   const initialStepId = sp.get("stepId") || "";
 
   const [steps, setSteps] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [saving, setSaving] = useState(false);
   const [subcats, setSubcats] = useState([""]);
   const [form, setForm] = useState({
     journey_step_id: initialStepId,
-    parent_category_id: "",
     name: "",
-    slug: "",
     is_active: true,
     image_url: "",
   });
@@ -61,21 +58,6 @@ export default function NewCategoryPage() {
       });
   }, [initialStepId]);
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token || !form.journey_step_id) {
-      setCategories([]);
-      return;
-    }
-    fetch(`${API_BASE}/admin/categories?journeyStepId=${encodeURIComponent(form.journey_step_id)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => setCategories(d.categories || []));
-  }, [form.journey_step_id]);
-
-  const currentStep = steps.find((s) => s.step_id === form.journey_step_id);
-  const isShopping = currentStep?.slug === "shopping";
   const stepOptions = useMemo(
     () =>
       steps.map((s) => ({
@@ -83,13 +65,8 @@ export default function NewCategoryPage() {
         label: `${Number(s.order) || 0}. ${s.title}`,
         keywords: s.slug,
       })),
-    [steps]
+    [steps],
   );
-
-  const parentOptions = useMemo(() => {
-    const parents = categories.filter((c) => !c.parent_category_id);
-    return parents.map((c) => ({ value: c.category_id, label: c.name, keywords: c.slug }));
-  }, [categories]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -99,12 +76,13 @@ export default function NewCategoryPage() {
       toast.error("Please select a journey step");
       return;
     }
+    if (!form.image_url) {
+      toast.error("Please add a category image");
+      return;
+    }
     setSaving(true);
     try {
-      const creatingSubcats =
-        isShopping &&
-        !form.parent_category_id &&
-        subcats.some((s) => String(s || "").trim().length > 0);
+      const hasSubs = subcats.some((s) => String(s || "").trim().length > 0);
 
       const res = await fetch(`${API_BASE}/admin/categories`, {
         method: "POST",
@@ -112,10 +90,10 @@ export default function NewCategoryPage() {
         body: JSON.stringify({
           journey_step_id: form.journey_step_id,
           name: form.name,
-          slug: form.slug || slugify(form.name),
+          slug: slugify(form.name),
           is_active: !!form.is_active,
           image_url: form.image_url || null,
-          parent_category_id: isShopping ? (form.parent_category_id || null) : null,
+          parent_category_id: null,
         }),
       });
       if (!res.ok) {
@@ -126,7 +104,7 @@ export default function NewCategoryPage() {
       const created = await res.json().catch(() => ({}));
       const parentId = created.categoryId || created?.category?.category_id;
 
-      if (creatingSubcats && parentId) {
+      if (hasSubs && parentId) {
         const toCreate = subcats.map((s) => String(s || "").trim()).filter(Boolean);
         for (const name of toCreate) {
           // eslint-disable-next-line no-await-in-loop
@@ -147,9 +125,9 @@ export default function NewCategoryPage() {
             return;
           }
         }
-        toast.success("Category + subcategories created");
+        toast.success("Category and subcategories saved");
       } else {
-        toast.success("Category created");
+        toast.success("Category saved");
       }
 
       router.push(`/categories?stepId=${encodeURIComponent(form.journey_step_id)}`);
@@ -162,8 +140,8 @@ export default function NewCategoryPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
-        title="Create category"
-        description="Organize journey content with clean category structure."
+        title="Add category"
+        description="Pick a journey step, name your category, then optionally add subcategories. They appear the same way on the customer site."
         action={
           <Button variant="outline" asChild className="h-10 gap-2 rounded-lg px-4 font-medium">
             <Link href={form.journey_step_id ? `/categories?stepId=${encodeURIComponent(form.journey_step_id)}` : "/categories"}>
@@ -176,105 +154,84 @@ export default function NewCategoryPage() {
 
       <Card className="rounded-2xl border border-slate-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle>Create category</CardTitle>
+          <CardTitle>Add category</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4 max-w-xl" onSubmit={onSubmit}>
+          <form className="max-w-xl space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>Journey step *</Label>
               <Combobox
                 value={form.journey_step_id}
-                onChange={(v) =>
-                  setForm((f) => ({ ...f, journey_step_id: v, parent_category_id: "" }))
-                }
+                onChange={(v) => setForm((f) => ({ ...f, journey_step_id: v }))}
                 options={stepOptions}
                 placeholder="Select step…"
                 searchPlaceholder="Search steps…"
               />
             </div>
 
-            {isShopping && (
-              <div className="space-y-2">
-                <Label>Parent category (optional)</Label>
-                <select
-                  value={form.parent_category_id}
-                  onChange={(e) => setForm((f) => ({ ...f, parent_category_id: e.target.value }))}
-                  className="flex h-10 w-full rounded-lg border border-(--input) bg-transparent px-3 py-2 text-sm"
+            <div className="space-y-2">
+              <Label>Category name *</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Photography"
+                required
+              />
+            </div>
+
+            <ImageUpload
+              label="Category image *"
+              initialUrl={form.image_url}
+              onUploadComplete={(url) => setForm((f) => ({ ...f, image_url: url }))}
+            />
+
+            <p className="text-xs text-muted-foreground">
+              URL slug is generated from the category name (lowercase, spaces become hyphens). Same for each subcategory name.
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Subcategories (optional)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setSubcats((arr) => [...arr, ""])}
                   disabled={!form.journey_step_id}
                 >
-                  <option value="">Top-level category</option>
-                  {parentOptions.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  If selected, this becomes a subcategory under the parent.
-                </p>
+                  <Plus className="size-4" />
+                  Add subcategory
+                </Button>
               </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-            </div>
-
-            <ImageUpload 
-              label="Category Image"
-              initialUrl={form.image_url}
-              onUploadComplete={(url) => setForm(f => ({ ...f, image_url: url }))}
-            />
-            <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))} placeholder="banquet-hall" />
-            </div>
-
-            {isShopping && !form.parent_category_id && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label>Subcategories (Shopping)</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => setSubcats((arr) => [...arr, ""])}
-                    disabled={!form.journey_step_id}
-                  >
-                    <Plus className="size-4" />
-                    Add subcategory
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {subcats.map((v, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Input
-                        value={v}
-                        onChange={(e) =>
-                          setSubcats((arr) => arr.map((x, i) => (i === idx ? e.target.value : x)))
-                        }
-                        placeholder={idx === 0 ? "e.g., Saree" : "Subcategory name"}
-                        disabled={!form.journey_step_id}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setSubcats((arr) => arr.filter((_, i) => i !== idx))}
-                        disabled={subcats.length === 1}
-                        aria-label="Remove subcategory"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Parent category ke saath hi subcategories create ho jayengi.
-                </p>
+                {subcats.map((v, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      value={v}
+                      onChange={(e) =>
+                        setSubcats((arr) => arr.map((x, i) => (i === idx ? e.target.value : x)))
+                      }
+                      placeholder={idx === 0 ? "e.g. Candid" : "Subcategory name"}
+                      disabled={!form.journey_step_id}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setSubcats((arr) => arr.filter((_, i) => i !== idx))}
+                      disabled={subcats.length === 1}
+                      aria-label="Remove subcategory"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                If you add any, they show next to this category on the user website (same journey step).
+              </p>
+            </div>
 
             <Button type="submit" className="gap-2" disabled={saving}>
               <Save className="size-4" />
@@ -286,4 +243,3 @@ export default function NewCategoryPage() {
     </div>
   );
 }
-

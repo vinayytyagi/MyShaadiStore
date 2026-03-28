@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrdersCollection } from "@/lib/db";
 import { verifyPaymentSignature } from "@/lib/razorpay";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/orderLifecycle";
 
 /**
  * POST /api/v1/orders/verify-payment
@@ -46,8 +47,8 @@ export async function POST(request) {
       { razorpay_order_id },
       {
         $set: {
-          payment_status: "Paid",
-          status: "Confirmed",
+          payment_status: PAYMENT_STATUS.PAID,
+          status: ORDER_STATUS.CONFIRMED,
           razorpay_payment_id,
           razorpay_signature,
           paid_at: new Date(),

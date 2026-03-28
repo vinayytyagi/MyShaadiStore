@@ -2,84 +2,54 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAuthUser, getAuthToken, saveAuthCookies, clearAuthCookies } from "@/lib/authCookies";
+import Image from "next/image";
+import { useAuthUser, getAuthToken, saveAuthCookies } from "@/lib/authCookies";
 import { updateMyProfile } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
 import { formatLakhs } from "@/lib/utils";
+import {
+  Check,
+  Heart,
+  IndianRupee,
+  MapPin,
+  Package,
+  Pencil,
+  Plus,
+  UserRound,
+  X,
+} from "lucide-react";
 
 /* ── Icons ─────────────────────────────────────────── */
 function UserIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6">
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
-      <path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    </svg>
-  );
+  return <UserRound className="h-6 w-6" />;
 }
 
 function PencilIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-      <path d="M14.5 2.5a2.121 2.121 0 113 3L6.25 16.75 2 18l1.25-4.25L14.5 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <Pencil className="h-4 w-4" />;
 }
 
 function PackageIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M12 2L2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <Package className="h-5 w-5" />;
 }
 
 function HeartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M12 20.25s-6.75-4.35-9-8.25C1.1 8.8 2.9 5.25 6.75 5.25c2.05 0 3.24 1.1 4.02 2.2.5.7 1.46.7 1.96 0 .78-1.1 1.97-2.2 4.02-2.2 3.85 0 5.65 3.55 3.75 6.75-2.25 3.9-9 8.25-9 8.25Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <Heart className="h-5 w-5" />;
 }
 
 function LocationIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" stroke="currentColor" strokeWidth="1.8"/>
-      <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.8"/>
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <MapPin className="h-5 w-5" />;
 }
 
 function CheckIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-      <path d="M4 10l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
+  return <Check className="h-4 w-4" />;
 }
 
 function XIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  );
+  return <X className="h-4 w-4" />;
 }
 
 function PlusIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  );
+  return <Plus className="h-4 w-4" />;
 }
 
 /* ── Helpers ────────────────────────────────────────── */
@@ -101,8 +71,8 @@ function getInitials(name) {
 }
 
 /* ── Main Component ────────────────────────────────── */
-export default function ProfileClient({ initialProfile = null, initialOrders = [] }) {
-  const user = useAuthUser();
+export default function ProfileClient({ initialProfile = null, initialOrders = [], hasServerSession = false }) {
+  const user = useAuthUser(initialProfile || null);
   const [profile, setProfile] = useState(initialProfile);
   const [orders] = useState(initialOrders);
   const [loading] = useState(false);
@@ -237,13 +207,8 @@ export default function ProfileClient({ initialProfile = null, initialOrders = [
     handleSaveAddresses(updated);
   }
 
-  function handleLogout() {
-    clearAuthCookies();
-    window.location.href = "/";
-  }
-
   /* ── Not logged in ─────────────────────────────────── */
-  if (!user) {
+  if (!user && !hasServerSession) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
         <div className="rounded-3xl border border-slate-100 bg-white/80 px-8 py-16 shadow-[0_8px_40px_rgba(0,0,0,0.04)] backdrop-blur">
@@ -277,7 +242,7 @@ export default function ProfileClient({ initialProfile = null, initialOrders = [
     { id: "profile", label: "Profile", icon: <UserIcon /> },
     { id: "orders", label: "Orders", icon: <PackageIcon /> },
     { id: "wedding", label: "Wedding details", icon: <HeartIcon /> },
-    { id: "budget", label: "Budget", icon: <HeartIcon /> },
+    { id: "budget", label: "Budget", icon: <IndianRupee className="h-4 w-4" /> },
     { id: "addresses", label: "Addresses", icon: <LocationIcon /> },
   ];
 
@@ -296,7 +261,7 @@ export default function ProfileClient({ initialProfile = null, initialOrders = [
           {/* Avatar */}
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-linear-to-br from-[#ff4f86] to-[#ff8fb1] text-2xl font-extrabold text-white shadow-[0_20px_50px_rgba(255,79,134,0.3)]">
             {profile?.image_url ? (
-              <img src={profile.image_url} alt={profile.name} className="h-full w-full object-cover" />
+              <Image src={profile.image_url} alt={profile.name} width={80} height={80} className="h-full w-full object-cover" />
             ) : (
               getInitials(profile?.name)
             )}
@@ -305,17 +270,12 @@ export default function ProfileClient({ initialProfile = null, initialOrders = [
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-700">
               {profile?.name || "User"}
             </h1>
-            <p className="mt-0.5 text-sm text-slate-400">+91 {profile?.phone || user.phone || ""}</p>
-            {profile?.email && <p className="text-sm text-slate-400">{profile.email}</p>}
-            <p className="mt-1 text-xs text-slate-300">Member since {formatDate(profile?.created_at)}</p>
+            <p className="mt-0.5 text-sm text-slate-800">+91 {profile?.phone || user.phone || ""}</p>
+            {profile?.email && <p className="text-sm text-slate-800">{profile.email}</p>}
+            <p className="mt-1 text-xs text-slate-600">Member since {formatDate(profile?.created_at)}</p>
           </div>
-          <div className="sm:ml-auto">
-            <button
-              onClick={handleLogout}
-              className="flex cursor-pointer items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-100"
-            >
-              <LogoutIcon /> Logout
-            </button>
+          <div className="sm:ml-auto rounded-xl border border-[#ffd9e6] bg-white/80 px-3 py-2 text-xs font-medium text-[#ff4f86]">
+            Account dashboard
           </div>
         </div>
       </div>
@@ -432,6 +392,28 @@ export default function ProfileClient({ initialProfile = null, initialOrders = [
                 <div className="rounded-2xl bg-slate-50/80 px-5 py-4">
                   <p className="text-xs text-slate-400">Account Status</p>
                   <p className="mt-1 text-sm font-bold text-emerald-600">{profile?.status || "Active"}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50/80 px-5 py-4">
+                  <p className="text-xs text-slate-400">Saved Addresses</p>
+                  <p className="mt-1 text-sm font-bold text-slate-700">{addresses.length}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50/80 px-5 py-4">
+                  <p className="text-xs text-slate-400">Orders Placed</p>
+                  <p className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <Package className="h-4 w-4 text-[#ff4f86]" />
+                    {orders.length}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50/80 px-5 py-4">
+                  <p className="text-xs text-slate-400">Wedding Month</p>
+                  <p className="mt-1 text-sm font-bold text-slate-700">{onboarding.wedding_month || "—"}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50/80 px-5 py-4">
+                  <p className="text-xs text-slate-400">Current Budget</p>
+                  <p className="mt-1 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <IndianRupee className="h-4 w-4 text-[#ff4f86]" />
+                    {onboarding.budget_total ? formatCurrency(onboarding.budget_total) : "—"}
+                  </p>
                 </div>
               </div>
             )}

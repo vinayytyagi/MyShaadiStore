@@ -29,6 +29,13 @@ export default async function OrderDetailPageServer({ params }) {
     }
   }
 
-  return <OrderDetailClient initialOrder={initialOrder} initialTracking={initialTracking} initialError={initialError} />;
+  return (
+    <OrderDetailClient
+      initialOrder={initialOrder}
+      initialTracking={initialTracking}
+      initialError={initialError}
+      hasServerSession={Boolean(token)}
+    />
+  );
 }
 

@@ -22,6 +22,12 @@ export default async function ProfilePageServer() {
     }
   }
 
-  return <ProfileClient initialProfile={initialProfile} initialOrders={initialOrders} />;
+  return (
+    <ProfileClient
+      initialProfile={initialProfile}
+      initialOrders={initialOrders}
+      hasServerSession={Boolean(token)}
+    />
+  );
 }
 

@@ -314,6 +314,18 @@ export default function TrackOrderClient({ initialOrders = [], initialPhone = ""
                   Track on Courier Website →
                 </a>
               )}
+              {result.tracking_summary && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-xs text-slate-400">Current Status</p>
+                    <p className="mt-0.5 text-sm font-bold text-slate-700">{result.tracking_summary.current_status || "—"}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-xs text-slate-400">Expected Delivery</p>
+                    <p className="mt-0.5 text-sm font-bold text-slate-700">{result.tracking_summary.expected_delivery_date || "—"}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

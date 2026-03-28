@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { getOrdersCollection } from "@/lib/db";
+import { ObjectId } from "mongodb";
+import { getItemsCollection, getOrdersCollection, getVendorCollection } from "@/lib/db";
 import { createRazorpayOrder, getPublicKeyId } from "@/lib/razorpay";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/lib/orderLifecycle";
 
 function randomPart(length = 5) {
   return Math.random().toString(36).slice(2, 2 + length).toUpperCase();
@@ -56,10 +58,63 @@ export async function POST(request) {
         category_label: item.category_label || null,
         subcategory_label: item.subcategory_label || null,
         image: item.image || item.images?.[0] || null,
+        vendor_id: item.vendor_id || null,
+      };
+    });
+    const uniqueItemIds = [
+      ...new Set(normalizedItems.map((item) => String(item.item_id || "")).filter((id) => ObjectId.isValid(id))),
+    ];
+    const itemCol = await getItemsCollection();
+    const itemDocs = uniqueItemIds.length
+      ? await itemCol.find({ _id: { $in: uniqueItemIds.map((id) => new ObjectId(id)) } }).toArray()
+      : [];
+    const itemDocMap = new Map(itemDocs.map((doc) => [doc._id.toString(), doc]));
+
+    const uniqueVendorIds = [
+      ...new Set(
+        normalizedItems
+          .map((item) => item.vendor_id || itemDocMap.get(String(item.item_id || ""))?.vendor_id)
+          .filter((id) => ObjectId.isValid(id))
+      ),
+    ];
+    const vendorCol = await getVendorCollection();
+    const vendorDocs = uniqueVendorIds.length
+      ? await vendorCol.find({ _id: { $in: uniqueVendorIds.map((id) => new ObjectId(id)) } }).toArray()
+      : [];
+    const vendorMap = new Map(vendorDocs.map((doc) => [doc._id.toString(), doc]));
+
+    const enrichedItems = normalizedItems.map((item) => {
+      const itemDoc = itemDocMap.get(String(item.item_id || ""));
+      const vendorId = item.vendor_id || itemDoc?.vendor_id || null;
+      const vendorIdStr = vendorId ? String(vendorId) : null;
+      const vendor = vendorIdStr ? vendorMap.get(vendorIdStr) : null;
+      const pickupAddresses = Array.isArray(vendor?.pickup_addresses) ? vendor.pickup_addresses : [];
+      const defaultPickup = pickupAddresses.find((addr) => addr?.is_default) || pickupAddresses[0] || null;
+      return {
+        ...item,
+        vendor_id: vendorIdStr,
+        policies: {
+          cancellable: itemDoc?.policies?.cancellable !== false,
+          refundable: itemDoc?.policies?.refundable === true,
+          cancellation_window_hours: Number(itemDoc?.policies?.cancellation_window_hours) || 24,
+          refund_window_days: Number(itemDoc?.policies?.refund_window_days) || 0,
+        },
+        pickup_address: defaultPickup
+          ? {
+              label: defaultPickup.label || null,
+              line1: defaultPickup.line1 || null,
+              line2: defaultPickup.line2 || null,
+              city: defaultPickup.city || null,
+              state: defaultPickup.state || null,
+              pincode: defaultPickup.pincode || null,
+              contact_name: defaultPickup.contact_name || null,
+              contact_phone: defaultPickup.contact_phone || null,
+            }
+          : null,
       };
     });
 
-    const totalAmount = normalizedItems.reduce((sum, item) => sum + item.total, 0);
+    const totalAmount = enrichedItems.reduce((sum, item) => sum + item.total, 0);
 
     if (totalAmount <= 0) {
       return NextResponse.json(
@@ -74,12 +129,12 @@ export async function POST(request) {
 
     const doc = {
       order_number: orderNumber,
-      status: "Pending",
-      payment_status: "Created",
+      status: ORDER_STATUS.PENDING,
+      payment_status: PAYMENT_STATUS.CREATED,
       fulfillment_status: "Unfulfilled",
       checkout_mode: "razorpay",
       payment_provider: "razorpay",
-      shipping_provider: "shiprocket",
+      shipping_provider: "manual",
       razorpay_order_id: null,       // will be filled below
       razorpay_payment_id: null,     // filled after verification
       customer: {
@@ -95,7 +150,7 @@ export async function POST(request) {
         pincode: String(shipping.pincode || "").trim() || null,
       },
       notes: String(body.notes || "").trim() || null,
-      items: normalizedItems,
+      items: enrichedItems,
       total_amount: totalAmount,
       currency: "INR",
       created_at: new Date(),

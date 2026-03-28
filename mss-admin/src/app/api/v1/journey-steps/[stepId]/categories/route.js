@@ -52,12 +52,21 @@ export async function POST(request, { params }) {
     }
 
     const col = await getCategoriesCollection();
+    const parentCategoryId = body.parentCategoryId ?? body.parent_category_id ?? null;
+    const imageUrl = body.image_url || body.imageUrl || null;
+    if (!parentCategoryId && !String(imageUrl || "").trim()) {
+      return NextResponse.json(
+        { code: "BAD_REQUEST", message: "Image is required for top-level category" },
+        { status: 400 }
+      );
+    }
     const doc = {
       journey_step_id: resolved,
       name,
       slug: body.slug || name.toLowerCase().replace(/\s+/g, "-"),
       description: body.description || null,
-      parent_category_id: body.parentCategoryId ?? body.parent_category_id ?? null,
+      parent_category_id: parentCategoryId || null,
+      image_url: imageUrl,
       is_active: body.is_active !== false,
       created_at: new Date(),
       updated_at: new Date(),

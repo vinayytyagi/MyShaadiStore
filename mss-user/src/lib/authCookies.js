@@ -53,8 +53,8 @@ export function getAuthUser() {
   }
 }
 
-export function useAuthUser() {
-  const [user, setUser] = useState(() => getAuthUser());
+export function useAuthUser(initialUser = null) {
+  const [user, setUser] = useState(() => initialUser || getAuthUser());
 
   useEffect(() => {
     const refreshAuthUser = () => setUser(getAuthUser());

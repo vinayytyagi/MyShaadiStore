@@ -71,6 +71,7 @@ function normalizeCartItem(item, quantity = 1) {
     location_city: item.location_city || "",
     description: item.description || "",
     vendor_id: item.vendor_id || "",
+    policies: item.policies || null,
     source: item.source || "catalog",
     added_at: new Date().toISOString(),
   };

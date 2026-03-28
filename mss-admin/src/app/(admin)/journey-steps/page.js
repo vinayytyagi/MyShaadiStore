@@ -48,29 +48,46 @@ function getToken() {
   return localStorage.getItem("mss_token");
 }
 
+async function fetchJourneyLists() {
+  const token = getToken();
+  if (!token) return null;
+  const [stepsRes, catsRes] = await Promise.all([
+    fetch(`${API_BASE}/admin/journey-steps`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+    fetch(`${API_BASE}/admin/categories`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+  ]);
+  return {
+    steps: stepsRes.steps || [],
+    categories: catsRes.categories || [],
+  };
+}
+
 export default function JourneyStepsPage() {
   const [steps, setSteps] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  function load() {
-    const token = getToken();
-    if (!token) return;
-    setLoading(true);
-    Promise.all([
-      fetch(`${API_BASE}/admin/journey-steps`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-      fetch(`${API_BASE}/admin/categories`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-    ])
-      .then(([stepsRes, catsRes]) => {
-        setSteps(stepsRes.steps || []);
-        setCategories(catsRes.categories || []);
-      })
-      .catch((err) => console.error("Failed to load journey data:", err))
-      .finally(() => setLoading(false));
+  async function reload({ showSpinner = false } = {}) {
+    if (showSpinner) setLoading(true);
+    try {
+      const data = await fetchJourneyLists();
+      if (!data) {
+        setSteps([]);
+        setCategories([]);
+        return;
+      }
+      setSteps(data.steps);
+      setCategories(data.categories);
+    } catch (err) {
+      console.error("Failed to load journey data:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    void reload();
+  }, []);
 
   async function toggleActive(step) {
     const token = getToken();
@@ -81,7 +98,7 @@ export default function JourneyStepsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ is_active: !step.is_active }),
       });
-      load();
+      await reload({ showSpinner: true });
       toast.success(step.is_active ? `"${step.title}" is now hidden` : `"${step.title}" is now live`);
     } catch (e) {
       toast.error("Failed to update status");
