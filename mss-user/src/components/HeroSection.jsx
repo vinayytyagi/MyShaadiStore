@@ -22,7 +22,7 @@ export default function HeroSection({ heroSlideshow = null }) {
       <div className="absolute left-0 top-[10%] z-0 h-[100px] w-2.5 rounded-r-2xl bg-[#ff4f86] sm:h-[120px] sm:w-3.5 xl:h-[135px] xl:w-4" />
 
       {/* Top right striped circle decoration — clipped so it never causes horizontal scroll */}
-      <div className="pointer-events-none absolute -right-[20%] top-[-120px] z-0 h-[240px] w-[240px] overflow-hidden opacity-35 sm:-right-[8%] sm:top-[-80px] sm:h-[280px] sm:w-[280px] lg:right-10 lg:top-[-160px] lg:h-[360px] lg:w-[360px]">
+      <div className="pointer-events-none absolute -right-[20%] top-[-120px] z-0 h-[240px] w-[240px] overflow-hidden opacity-35 sm:-right-[8%] sm:top-[-80px] sm:h-[280px] sm:w-[280px] -lg:right-10 lg:top-[-160px] lg:h-[360px] lg:w-[360px]">
         <svg viewBox="0 0 100 100" className="w-full h-full text-[#ff4e83]">
           <pattern
             id="diagonalHatch"

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearAuthCookies, useAuthUser } from "@/lib/authCookies";
 import BasketButton from "@/components/BasketButton";
 import { clearAllCarts } from "@/lib/cartStore";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 import { User, Package, Truck, LogOut, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,17 +42,21 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
   const shoppingStep = useMemo(() => steps.find((step) => step.slug === "shopping"), [steps]);
   const user = useAuthUser(initialUser);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [logoutModalPathname, setLogoutModalPathname] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileJourneyOpen, setIsMobileJourneyOpen] = useState(false);
   const isJourneyActive = pathname?.startsWith("/journey/");
   const isShoppingActive =
     pathname?.startsWith("/shopping") || (shoppingStep && pathname === `/journey/${shoppingStep.slug}`);
+  // Underline using `after` so it renders consistently (hover + active).
   const navLinkClass =
-    "pb-0.5 text-slate-600 underline decoration-2 decoration-transparent underline-offset-[10px] transition-colors duration-200 hover:text-slate-900 hover:underline hover:decoration-[#ff4f86]";
+    "relative pb-0.5 text-slate-600 transition-colors duration-200 hover:text-slate-900 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[1.5px] after:w-full after:origin-left after:scale-x-0 after:bg-[#ff4f86] after:transition-transform after:duration-200 hover:after:scale-x-100";
   const activeNavLinkClass =
-    "pb-0.5 text-slate-800 underline decoration-2 decoration-[#ff4f86] underline-offset-[10px]";
+    "relative pb-0.5 text-slate-800 transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:origin-left after:scale-x-100 after:bg-[#ff4f86] after:transition-transform after:duration-200 hover:text-slate-900 hover:after:scale-x-100";
 
   function handleLogout() {
+    setShowLogoutModal(false);
+    setLogoutModalPathname(null);
     clearAuthCookies();
     clearAllCarts();
     toast.success("Logged out successfully.");
@@ -63,8 +68,11 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
     return null;
   }
 
+  const logoutModalOpen = showLogoutModal && logoutModalPathname === pathname;
+
   return (
-    <header className="sticky top-0 z-30 border-b border-white/70 bg-white/95 backdrop-blur">
+    <>
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/70 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-20">
         <Link href="/" className="flex cursor-pointer items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ff4f86] text-white">
@@ -170,7 +178,13 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
                   Track Order
                 </Link>
                 <div className="my-1 border-t border-slate-100" />
-                <button onClick={() => setShowLogoutModal(true)} className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50">
+                <button
+                  onClick={() => {
+                    setLogoutModalPathname(pathname);
+                    setShowLogoutModal(true);
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+                >
                   <LogOut className="h-4 w-4" />
                   Logout
                 </button>
@@ -203,7 +217,7 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
         </div>
       </div>
       {isMobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-60 lg:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-slate-900/45"
@@ -268,30 +282,16 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
           </div>
         </div>
       ) : null}
-      {showLogoutModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-slate-900">Confirm logout</h3>
-            <p className="mt-2 text-sm text-slate-500">Are you sure you want to logout from your account?</p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="h-10 rounded-lg bg-red-500 px-4 text-sm font-semibold text-white hover:bg-red-600"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </header>
+      </header>
+      <div className="h-[88px] sm:h-[92px]" aria-hidden="true" />
+      <LogoutConfirmModal
+        open={logoutModalOpen}
+        onClose={() => {
+          setShowLogoutModal(false);
+          setLogoutModalPathname(null);
+        }}
+        onConfirm={handleLogout}
+      />
+    </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthScene from "@/components/AuthScene";
 import { getAuthToken, getAuthUser, saveAuthCookies } from "@/lib/authCookies";
@@ -277,6 +278,13 @@ export default function LoginFlow({ initialSteps = [] }) {
             </button>
             
             <SocialAuth />
+
+            <div className="pt-2 text-center text-sm font-medium text-slate-600">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-[#ff4f86] hover:underline">
+                Sign up
+              </Link>
+            </div>
           </form>
         ) : null}
 
