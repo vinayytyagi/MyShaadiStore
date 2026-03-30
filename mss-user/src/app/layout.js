@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
