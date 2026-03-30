@@ -9,7 +9,7 @@ export default function AuthScene({
   const hasStepper = Array.isArray(stepLabels) && stepLabels.length > 0;
 
   return (
-    <main className="relative flex min-h-screen w-full items-center justify-center bg-slate-900 p-4 selection:bg-[#ff4f86] selection:text-white">
+    <main className="relative flex min-h-screen w-full items-center justify-center bg-slate-900 selection:bg-[#ff4f86] selection:text-white">
       {/* Ambience Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -17,7 +17,7 @@ export default function AuthScene({
       />
       <div className="absolute inset-0 bg-linear-to-br from-slate-900/65 via-slate-900/45 to-[#ff4f86]/20" />
 
-      <div className={`relative z-10 w-full ${hasStepper ? "max-w-6xl" : "max-w-[560px]"}`}>
+      <div className={`relative z-10 w-full px-4 ${hasStepper ? "max-w-6xl" : "max-w-[560px]"}`}>
         {hasStepper ? (
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.25fr]">
             <div className="hidden lg:block">
