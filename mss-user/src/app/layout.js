@@ -1,6 +1,7 @@
-import { Poppins } from "next/font/google";
+import { Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
+import MainArea from "@/components/layout/MainArea";
 import SiteFooter from "@/components/SiteFooter";
 import SiteFooterMaroon from "@/components/SiteFooterMaroon";
 import { fetchJourneySteps } from "@/lib/api";
@@ -11,6 +12,12 @@ const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata = {
@@ -36,12 +43,12 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${playfair.variable} font-sans antialiased`}
       >
-        <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,#fff7fa_0%,#f7f7fb_35%,#f4f4f8_100%)]">
+        <div className="flex min-h-screen flex-col overflow-x-hidden bg-[radial-gradient(circle_at_top,#fff7fa_0%,#f7f7fb_35%,#f4f4f8_100%)]">
           <SiteHeader steps={steps} initialUser={initialUser} />
           <AppToaster />
-          <div className="flex-1">{children}</div>
+          <MainArea>{children}</MainArea>
           <SiteFooter steps={steps} />
           <SiteFooterMaroon steps={steps} />
           <a

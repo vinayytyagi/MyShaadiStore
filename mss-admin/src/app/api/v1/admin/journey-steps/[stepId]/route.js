@@ -36,7 +36,6 @@ export async function PUT(request, { params }) {
     if (body.subtitle !== undefined) update.subtitle = body.subtitle;
     if (body.icon !== undefined) update.icon = body.icon;
     if (body.image_url !== undefined) update.image_url = body.image_url;
-    if (body.order !== undefined) update.order = Number(body.order) || 0;
     if (body.default_budget !== undefined) update.default_budget = Number(body.default_budget) || 0;
     if (body.max_budget !== undefined) update.max_budget = Number(body.max_budget) || 0;
     if (body.is_active !== undefined) update.is_active = body.is_active;

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { requireAdmin } from "@/lib/auth";
 import { getVendorCollection } from "@/lib/db";
+import { escapeRegex, parsePagination, parseSort } from "@/lib/adminListQuery";
+
+const VENDOR_SORT = ["business_name", "city", "vendor_type", "status", "created_at", "updated_at"];
 
 function normalizePickupAddresses(input) {
   const list = Array.isArray(input) ? input : [];
@@ -30,14 +33,27 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 20;
+    const q = (searchParams.get("q") || searchParams.get("search") || "").trim();
+    const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 25, maxLimit: 500 });
+    const { sort } = parseSort(searchParams, VENDOR_SORT, "business_name", "asc");
+
     const col = await getVendorCollection();
-    const filter = status ? { status } : {};
+    const filter = {};
+    if (status) filter.status = status;
+    if (q) {
+      const rx = { $regex: escapeRegex(q), $options: "i" };
+      filter.$or = [
+        { business_name: rx },
+        { contact_email: rx },
+        { email: rx },
+        { city: rx },
+        { vendor_type: rx },
+      ];
+    }
     const total = await col.countDocuments(filter);
-    const skip = (page - 1) * limit;
     const vendors = await col
       .find(filter)
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .project({ passwordHash: 0 })

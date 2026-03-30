@@ -31,7 +31,15 @@ function slugify(s) {
 export default function NewJourneyStepPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: "", subtitle: "", slug: "", order: 1, is_active: true, default_budget: 0, max_budget: 5000000 });
+  const [form, setForm] = useState({
+    title: "",
+    subtitle: "",
+    slug: "",
+    image_url: "",
+    is_active: true,
+    default_budget: 0,
+    max_budget: 5000000,
+  });
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -46,7 +54,6 @@ export default function NewJourneyStepPage() {
           title: form.title,
           subtitle: form.subtitle || null,
           slug: form.slug || slugify(form.title),
-          order: Number(form.order) || 0,
           image_url: form.image_url || null,
           default_budget: Number(form.default_budget) || 0,
           max_budget: Number(form.max_budget) || 0,
@@ -112,7 +119,7 @@ export default function NewJourneyStepPage() {
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
                 <Label>Slug *</Label>
                 <Input
                   value={form.slug}
@@ -121,14 +128,9 @@ export default function NewJourneyStepPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Order</Label>
-                <Input
-                  type="number"
-                  value={form.order}
-                  onChange={(e) => setForm((f) => ({ ...f, order: e.target.value }))}
-                />
-              </div>
+              <p className="text-xs text-slate-500 sm:col-span-2 md:col-span-1 md:self-end">
+                New steps are appended to the end. Reorder from the journey steps list.
+              </p>
               <div className="space-y-2">
                 <Label>Default Budget (in ₹)</Label>
                 <Input

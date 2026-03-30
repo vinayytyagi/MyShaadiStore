@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { getItemsCollection } from "@/lib/db";
+import { getItemsCollection, getJourneyStepsCollection } from "@/lib/db";
+import { escapeRegex, parsePagination, parseSort } from "@/lib/adminListQuery";
+
+const MAX_ADMIN_ITEMS_LIMIT = 500;
+const ITEM_SORT = ["name", "price", "status", "created_at", "updated_at", "slug", "location_city"];
 
 export async function GET(request) {
   const err = requireAdmin(request);
@@ -10,11 +14,23 @@ export async function GET(request) {
     const vendorId = searchParams.get("vendorId");
     const categoryId = searchParams.get("categoryId");
     const subcategoryId = searchParams.get("subcategoryId") || searchParams.get("subcategory_id");
-    const journeyStepId = searchParams.get("journeyStepId") || searchParams.get("journey_step_id");
+    let journeyStepId = searchParams.get("journeyStepId") || searchParams.get("journey_step_id") || "";
+    const stepSlug = (searchParams.get("step") || searchParams.get("journeyStepSlug") || "").trim();
+    if (!journeyStepId && stepSlug) {
+      const jcol = await getJourneyStepsCollection();
+      const st = await jcol.findOne({ slug: stepSlug.toLowerCase() });
+      if (st) journeyStepId = st._id.toString();
+    }
     const item_type = searchParams.get("item_type");
     const status = searchParams.get("status");
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 20;
+    const q = (searchParams.get("q") || searchParams.get("search") || "").trim();
+
+    const { page, limit, skip } = parsePagination(searchParams, {
+      defaultLimit: 100,
+      maxLimit: MAX_ADMIN_ITEMS_LIMIT,
+    });
+    const { sort } = parseSort(searchParams, ITEM_SORT, "updated_at", "desc");
+
     const col = await getItemsCollection();
     const filter = {};
     if (vendorId) filter.vendor_id = vendorId;
@@ -23,9 +39,13 @@ export async function GET(request) {
     if (journeyStepId) filter.journey_step_id = journeyStepId;
     if (item_type) filter.item_type = item_type;
     if (status) filter.status = status;
+    if (q) {
+      const rx = { $regex: escapeRegex(q), $options: "i" };
+      filter.$or = [{ name: rx }, { slug: rx }, { description: rx }, { location_city: rx }];
+    }
+
     const total = await col.countDocuments(filter);
-    const skip = (page - 1) * limit;
-    const items = await col.find(filter).skip(skip).limit(limit).toArray();
+    const items = await col.find(filter).sort(sort).skip(skip).limit(limit).toArray();
     const list = items.map((i) => ({ ...i, item_id: i._id.toString() }));
     return NextResponse.json({ items: list, total, page, limit });
   } catch (e) {

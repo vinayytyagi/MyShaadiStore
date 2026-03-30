@@ -55,3 +55,8 @@ export async function getQuotationRequestsCollection() {
   const database = await connectDB();
   return database.collection("quotation_requests");
 }
+
+export async function getSiteSettingsCollection() {
+  const database = await connectDB();
+  return database.collection("site_settings");
+}

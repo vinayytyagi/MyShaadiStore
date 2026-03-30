@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { requireAdmin } from "@/lib/auth";
 import { getQuotationRequestsCollection } from "@/lib/db";
+import { escapeRegex, parsePagination, parseSort } from "@/lib/adminListQuery";
+
+const QUOTE_SORT = ["created_at", "updated_at", "email_status"];
 
 export async function GET(request) {
   const err = requireAdmin(request);
@@ -9,14 +13,32 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const emailStatus = searchParams.get("email_status");
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 20;
+    const q = (searchParams.get("q") || searchParams.get("search") || "").trim();
+    const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 25, maxLimit: 200 });
+    const { sort } = parseSort(searchParams, QUOTE_SORT, "created_at", "desc");
 
     const col = await getQuotationRequestsCollection();
-    const filter = emailStatus ? { email_status: emailStatus } : {};
+    const filter = {};
+    if (emailStatus) filter.email_status = emailStatus;
+    if (q) {
+      const rx = { $regex: escapeRegex(q), $options: "i" };
+      const or = [{ "customer.name": rx }, { "customer.phone": rx }, { "customer.email": rx }];
+      if (ObjectId.isValid(q) && String(q).length === 24) {
+        try {
+          or.push({ _id: new ObjectId(q) });
+        } catch {
+          /* ignore */
+        }
+      }
+      or.push({
+        $expr: {
+          $regexMatch: { input: { $toString: "$_id" }, regex: escapeRegex(q), options: "i" },
+        },
+      });
+      filter.$or = or;
+    }
     const total = await col.countDocuments(filter);
-    const skip = (page - 1) * limit;
-    const requests = await col.find(filter).sort({ created_at: -1 }).skip(skip).limit(limit).toArray();
+    const requests = await col.find(filter).sort(sort).skip(skip).limit(limit).toArray();
 
     return NextResponse.json({
       requests: requests.map((requestItem) => ({

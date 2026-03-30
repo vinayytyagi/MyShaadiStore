@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter, MoreHorizontal, Pencil, Store, Mail, MapPin, Percent, CircleCheck, CircleX } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Plus, Search, MoreHorizontal, Pencil, Store, Mail, MapPin, Percent, CircleX, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 import SectionHeader from "@/components/ui/section-header";
 
 const API_BASE = "/api/v1";
+const PAGE_SIZE = 25;
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -34,37 +36,107 @@ function getToken() {
 }
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  function load() {
+  const listQ = (searchParams.get("q") || "").trim();
+  const sort = (searchParams.get("sort") || "business_name").trim();
+  const dir = (searchParams.get("dir") || "asc").toLowerCase() === "desc" ? "desc" : "asc";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  const [vendors, setVendors] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [draftQ, setDraftQ] = useState(listQ);
+
+  useEffect(() => {
+    setDraftQ(listQ);
+  }, [listQ]);
+
+  useEffect(() => {
+    if (draftQ === listQ) return;
+    const h = setTimeout(() => {
+      const q = new URLSearchParams(searchParams.toString());
+      if (draftQ.trim()) q.set("q", draftQ.trim());
+      else q.delete("q");
+      q.set("page", "1");
+      router.replace(q.toString() ? `${pathname}?${q}` : pathname, { scroll: false });
+    }, 400);
+    return () => clearTimeout(h);
+  }, [draftQ, listQ, pathname, router, searchParams]);
+
+  const setSort = useCallback(
+    (field) => {
+      const q = new URLSearchParams(searchParams.toString());
+      const cur = (q.get("sort") || "business_name").trim();
+      const curDir = (q.get("dir") || "asc").toLowerCase();
+      if (cur === field) {
+        q.set("dir", curDir === "asc" ? "desc" : "asc");
+      } else {
+        q.set("sort", field);
+        q.set("dir", field === "created_at" || field === "updated_at" ? "desc" : "asc");
+      }
+      q.set("page", "1");
+      router.replace(q.toString() ? `${pathname}?${q}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  function goPage(nextPage) {
+    const q = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) q.delete("page");
+    else q.set("page", String(nextPage));
+    router.replace(q.toString() ? `${pathname}?${q}` : pathname, { scroll: false });
+  }
+
+  const load = useCallback(() => {
     const token = getToken();
     if (!token) return;
     setLoading(true);
-    fetch(`${API_BASE}/admin/vendors`, { 
-      headers: { Authorization: `Bearer ${token}` } 
+    const qs = new URLSearchParams();
+    if (listQ) qs.set("q", listQ);
+    qs.set("sort", sort);
+    qs.set("dir", dir);
+    qs.set("page", String(page));
+    qs.set("limit", String(PAGE_SIZE));
+    fetch(`${API_BASE}/admin/vendors?${qs.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((d) => setVendors(d.vendors || []))
+      .then((d) => {
+        setVendors(d.vendors || []);
+        setTotal(Number(d.total) || 0);
+      })
       .catch((err) => console.error("Failed to load vendors:", err))
       .finally(() => setLoading(false));
+  }, [listQ, sort, dir, page]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const canPrev = page > 1;
+  const canNext = page * PAGE_SIZE < total;
+
+  function SortHead({ field, children, className }) {
+    const active = sort === field;
+    return (
+      <TableHead className={cn("font-semibold text-slate-700", className)}>
+        <button
+          type="button"
+          onClick={() => setSort(field)}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-left hover:bg-slate-100/80",
+            active && "text-pink-700",
+          )}
+        >
+          {children}
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+        </button>
+      </TableHead>
+    );
   }
-
-  useEffect(load, []);
-
-  const filtered = vendors.filter((v) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    const searchableText = [
-      v.business_name,
-      v.contact_email,
-      v.email,
-      v.vendor_type,
-      v.city
-    ].filter(Boolean).join(" ").toLowerCase();
-    return searchableText.includes(q);
-  });
 
   return (
     <div className="space-y-8 pb-10">
@@ -92,15 +164,15 @@ export default function VendorsPage() {
                 All Vendors
               </CardTitle>
               <CardDescription>
-                Showing {filtered.length} total vendors across all categories.
+                {loading ? "Loading…" : `${total.toLocaleString()} vendors · page ${page}`}
               </CardDescription>
             </div>
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                placeholder="Search business name, email or city..." 
+              <Input
+                value={draftQ}
+                onChange={(e) => setDraftQ(e.target.value)}
+                placeholder="Search business name, email or city…"
                 className="pl-10 h-10 border-slate-200 focus:border-pink-300 ring-0 focus-visible:ring-0"
               />
             </div>
@@ -116,24 +188,28 @@ export default function VendorsPage() {
               <Table>
                 <TableHeader className="bg-slate-50/50">
                   <TableRow>
-                    <TableHead className="font-semibold text-slate-700">Business</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Type</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Location</TableHead>
+                    <TableHead className="w-10 font-semibold text-slate-700">#</TableHead>
+                    <SortHead field="business_name">Business</SortHead>
+                    <SortHead field="vendor_type">Type</SortHead>
+                    <SortHead field="city">Location</SortHead>
                     <TableHead className="font-semibold text-slate-700">Commission</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                    <SortHead field="status">Status</SortHead>
                     <TableHead className="text-right w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length === 0 ? (
+                  {vendors.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-slate-400 italic">
-                        No vendors found matching your search.
+                      <TableCell colSpan={7} className="h-32 text-center text-slate-400 italic">
+                        No vendors match these filters.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filtered.map((v) => (
+                    vendors.map((v, idx) => (
                       <TableRow key={v.vendor_id} className="hover:bg-slate-50/30 transition-colors">
+                        <TableCell className="text-sm font-medium tabular-nums text-slate-500">
+                          {(page - 1) * PAGE_SIZE + idx + 1}
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-800">{v.business_name}</span>
@@ -212,6 +288,36 @@ export default function VendorsPage() {
               </Table>
             </div>
           )}
+          <div className="flex flex-col gap-3 border-t border-slate-50 bg-slate-50/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              {total.toLocaleString()} records · {PAGE_SIZE} per page
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-lg border-slate-200"
+                disabled={!canPrev || loading}
+                onClick={() => goPage(page - 1)}
+              >
+                Previous
+              </Button>
+              <div className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 font-mono text-xs font-bold">
+                {page}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-lg border-slate-200"
+                disabled={!canNext || loading}
+                onClick={() => goPage(page + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
     </div>

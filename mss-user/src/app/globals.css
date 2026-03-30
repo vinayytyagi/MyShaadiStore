@@ -32,6 +32,18 @@ a {
   text-decoration: none;
 }
 
+a.signup-header-cta,
+a.signup-header-cta:hover,
+a.signup-header-cta:visited {
+  color: #ffffff;
+}
+
+a.showcase-journey-cta,
+a.showcase-journey-cta:hover,
+a.showcase-journey-cta:visited {
+  color: #ffffff;
+}
+
 button,
 a,
 summary,

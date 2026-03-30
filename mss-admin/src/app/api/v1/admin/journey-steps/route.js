@@ -1,15 +1,30 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getJourneyStepsCollection } from "@/lib/db";
+import { escapeRegex, parsePagination, parseSort } from "@/lib/adminListQuery";
+
+const SORT_FIELDS = ["order", "title", "slug", "created_at", "updated_at", "is_active"];
 
 export async function GET(request) {
   const err = requireAdmin(request);
   if (err) return err;
   try {
+    const { searchParams } = new URL(request.url);
+    const q = (searchParams.get("q") || searchParams.get("search") || "").trim();
+    const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 100, maxLimit: 500 });
+    const { sort } = parseSort(searchParams, SORT_FIELDS, "order", "asc");
+
     const col = await getJourneyStepsCollection();
-    const list = await col.find({}).sort({ order: 1 }).toArray();
+    const filter = {};
+    if (q) {
+      const rx = { $regex: escapeRegex(q), $options: "i" };
+      filter.$or = [{ title: rx }, { slug: rx }, { subtitle: rx }];
+    }
+
+    const total = await col.countDocuments(filter);
+    const list = await col.find(filter).sort(sort).skip(skip).limit(limit).toArray();
     const out = list.map((s) => ({ ...s, step_id: s._id.toString() }));
-    return NextResponse.json({ steps: out });
+    return NextResponse.json({ steps: out, total, page, limit });
   } catch (e) {
     return NextResponse.json({ code: "INTERNAL_ERROR", message: e.message }, { status: 500 });
   }
@@ -32,11 +47,14 @@ export async function POST(request) {
       return NextResponse.json({ code: "BAD_REQUEST", message: "slug already exists" }, { status: 400 });
     }
 
+    const maxDoc = await col.find({}).sort({ order: -1 }).limit(1).toArray();
+    const nextOrder = maxDoc.length ? (Number(maxDoc[0].order) || 0) + 1 : 0;
+
     const doc = {
       slug,
       title,
       subtitle: body.subtitle || null,
-      order: Number(body.order) || 0,
+      order: nextOrder,
       icon: body.icon || null,
       image_url: body.image_url || null,
       default_budget: Number(body.default_budget) || 0,
@@ -55,4 +73,3 @@ export async function POST(request) {
     return NextResponse.json({ code: "INTERNAL_ERROR", message: e.message }, { status: 500 });
   }
 }
-

@@ -14,6 +14,16 @@ export function formatCurrency(value) {
   }).format(amount);
 }
 
+/** PDP-style label matching design mockups (Rs + grouped digits + 2 decimals). */
+export function formatPriceDetailed(value) {
+  const amount = Number(value || 0);
+  const formatted = amount.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `Rs${formatted}`;
+}
+
 export function getItemImage(item, index = 0) {
   return item?.images?.[0] || fallbackImages[index % fallbackImages.length];
 }

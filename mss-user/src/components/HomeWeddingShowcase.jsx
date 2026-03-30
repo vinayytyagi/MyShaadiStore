@@ -1,25 +1,38 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Camera, Check, Landmark, Sparkles } from "lucide-react";
+import { Camera, Check, Flower2, Landmark } from "lucide-react";
+
+const serif = "font-[family-name:var(--font-playfair),ui-serif,Georgia,serif]";
+
+const coupleMaskStyle = {
+  WebkitMaskImage:
+    "linear-gradient(to right, transparent 0%, black 26%), linear-gradient(to bottom, black 0%, black 52%, transparent 100%)",
+  maskImage:
+    "linear-gradient(to right, transparent 0%, black 26%), linear-gradient(to bottom, black 0%, black 52%, transparent 100%)",
+  WebkitMaskComposite: "source-in",
+  maskComposite: "intersect",
+};
 
 const cards = [
   {
     title: "Wedding Venues",
     points: [
       "Explore top wedding venues",
-      "Compare prices and availability",
+      "Compare prices & availability",
       "Find the perfect location for your big day",
     ],
-    icon: Landmark,
+    Icon: Landmark,
+    iconWrap: "bg-amber-100/95 text-[#c27803]",
   },
   {
-    title: "Decor & Styling",
+    title: "Décor & Styling",
     points: [
-      "Wedding themes & stage decor",
+      "Wedding themes & stage décor",
       "Floral setups & mandap design",
-      "Customized decor ideas",
+      "Customized décor ideas",
     ],
-    icon: Sparkles,
+    Icon: Flower2,
+    iconWrap: "bg-amber-100/95 text-[#c27803]",
   },
   {
     title: "Wedding Services",
@@ -28,44 +41,76 @@ const cards = [
       "Bridal makeup & styling",
       "Catering, invitations & more",
     ],
-    icon: Camera,
+    Icon: Camera,
+    iconWrap: "bg-pink-100/95 text-[#ff4f86]",
   },
 ];
 
-export default function HomeWeddingShowcase() {
+export default function HomeWeddingShowcase({ journeyHref = "/how-it-works" }) {
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(180deg,#f6f0f7_0%,#faeff4_50%,#f7e8ef_100%)] px-4 pb-20 pt-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-center text-[40px] font-semibold tracking-tight text-[#2f3058]">
+    <section className="relative overflow-hidden bg-[#fff0f5] px-4 pb-28 pt-14 sm:px-6 lg:px-8">
+      {/* Bottom bokeh + soft sparkles */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(48vh,340px)]" aria-hidden>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_100%,rgba(255,255,255,0.98)_0%,rgba(255,240,245,0.55)_38%,transparent_70%)]" />
+        <div className="absolute bottom-8 left-[8%] h-32 w-32 rounded-full bg-white/50 blur-3xl" />
+        <div className="absolute bottom-12 left-[28%] h-28 w-40 rounded-full bg-amber-100/50 blur-3xl" />
+        <div className="absolute bottom-6 right-[22%] h-36 w-36 rounded-full bg-white/45 blur-3xl" />
+        <div className="absolute bottom-16 right-[8%] h-24 w-32 rounded-full bg-rose-200/40 blur-3xl" />
+        <div className="absolute bottom-20 left-[18%] h-1.5 w-1.5 rounded-full bg-white/90 shadow-[0_0_12px_3px_rgba(255,255,255,0.85)]" />
+        <div className="absolute bottom-32 left-[42%] h-1 w-1 rounded-full bg-white/80 shadow-[0_0_10px_2px_rgba(255,255,255,0.75)]" />
+        <div className="absolute bottom-24 left-[55%] h-1.5 w-1.5 rounded-full bg-rose-100 shadow-[0_0_14px_4px_rgba(255,200,220,0.6)]" />
+        <div className="absolute bottom-36 right-[35%] h-1 w-1 rounded-full bg-white/90 shadow-[0_0_10px_2px_rgba(255,255,255,0.8)]" />
+        <div className="absolute bottom-28 right-[48%] h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_12px_3px_rgba(255,255,255,0.65)]" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-7xl">
+        <p
+          className={`text-center text-3xl font-semibold tracking-tight text-[#2d2d44] sm:text-[2.35rem] ${serif}`}
+        >
           MyShaadiStore
         </p>
-        <h2 className="mt-3 text-center text-4xl font-bold leading-tight text-[#30305a] sm:text-5xl">
-          Shop Everything for Your Dream Wedding -{" "}
-          <span className="text-[#ff4f86]">All in One Place</span>
+        <h2
+          className={`mx-auto mt-4 max-w-4xl text-center text-2xl font-semibold leading-snug tracking-tight text-[#2d2d44] sm:text-3xl md:text-[2.125rem] md:leading-tight ${serif}`}
+        >
+          Shop Everything for Your Dream Wedding —{" "}
+          <span className="font-semibold text-[#ff4f86]">All in One Place</span>
         </h2>
-        <p className="mx-auto mt-4 max-w-4xl text-center text-lg leading-8 text-[#4f5076]">
-          Discover everything you need for your wedding - outfits, decor, venues, photography, makeup
-          and more.
-          <br />
-          Choose individual services or shop complete wedding essentials with MyShaadiStore.
-        </p>
 
-        <div className="relative mt-14">
-          <div className="relative z-10 grid gap-4 lg:grid-cols-3">
+        <div className="mx-auto mt-5 max-w-3xl space-y-1 text-center text-[15px] leading-relaxed text-[#5c5c74] sm:text-base">
+          <p>
+            Discover everything you need for your wedding — outfits, décor, venues, photography, makeup
+            and more.
+          </p>
+          <p>
+            Choose individual services or shop complete wedding essentials with MyShaadiStore.
+          </p>
+        </div>
+
+        <div className="relative mt-12 lg:mt-16">
+          <div className="grid gap-5 lg:grid-cols-3 lg:gap-6 lg:pr-[min(340px,30vw)]">
             {cards.map((card) => (
               <article
                 key={card.title}
-                className="rounded-3xl border border-white/70 bg-white/70 p-6 shadow-[0_18px_46px_rgba(20,20,40,0.08)] backdrop-blur-sm"
+                className="relative z-10 rounded-[1.5rem] bg-white p-6 shadow-[0_10px_40px_rgba(45,45,68,0.07),0_2px_12px_rgba(45,45,68,0.04)] sm:p-7"
               >
-                <div className="flex items-center gap-2 text-3xl font-semibold text-[#2f3058]">
-                  <card.icon className="h-7 w-7 text-[#ff9b2f]" />
-                  <h3>{card.title}</h3>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${card.iconWrap}`}
+                  >
+                    <card.Icon className="h-6 w-6 stroke-[1.6]" aria-hidden />
+                  </span>
+                  <h3 className={`text-lg font-semibold tracking-tight text-[#2d2d44] ${serif}`}>
+                    {card.title}
+                  </h3>
                 </div>
-                <ul className="mt-6 space-y-3">
+                <ul className="mt-5 space-y-2.5">
                   {card.points.map((point) => (
-                    <li key={point} className="flex items-start gap-2 text-lg text-[#4f5076]">
-                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#ffe6f0] text-[#ff4f86]">
-                        <Check className="h-3.5 w-3.5" />
+                    <li
+                      key={point}
+                      className="flex items-start gap-2.5 text-[15px] leading-snug text-[#4a4a62]"
+                    >
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#ffe4ef] text-[#ff4f86]">
+                        <Check className="h-3 w-3 stroke-[2.5]" strokeLinecap="round" />
                       </span>
                       <span>{point}</span>
                     </li>
@@ -75,24 +120,28 @@ export default function HomeWeddingShowcase() {
             ))}
           </div>
 
-          <div className="pointer-events-none absolute -right-5 -top-24 hidden h-[600px] w-[460px] lg:block">
-            <Image
-              src="https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=1000&q=80"
-              alt="Wedding couple"
-              fill
-              className="object-contain object-top-right"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-[#f7e8ef] to-transparent" />
+          <div className="pointer-events-none absolute -right-4 top-1/2 z-20 hidden h-[min(520px,52vw)] w-[min(380px,34vw)] -translate-y-1/2 lg:block xl:-right-6 xl:h-[min(560px,50vw)] xl:w-[min(420px,32vw)]">
+            <div className="relative h-full w-full" style={coupleMaskStyle}>
+              <Image
+                src="https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=1000&q=80"
+                alt="Couple in wedding attire"
+                fill
+                sizes="(min-width: 1280px) 420px, 380px"
+                className="object-cover object-[center_22%]"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 flex justify-center">
+        <div className="relative z-20 mt-14 flex justify-center lg:mt-16">
           <Link
-            href="/journey"
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#ff4f86] px-12 py-4 text-3xl font-semibold text-white shadow-[0_14px_30px_rgba(255,79,134,0.35)] transition hover:bg-[#ff3d79]"
+            href={journeyHref}
+            className="showcase-journey-cta inline-flex items-center gap-2 rounded-full bg-linear-to-r from-[#ff6ba8] via-[#ff4f86] to-[#e91e90] px-10 py-3.5 text-base font-semibold text-white shadow-[0_14px_34px_rgba(233,30,144,0.35)] transition hover:brightness-[1.05] sm:px-14 sm:py-4 sm:text-lg"
           >
             Begin Your Wedding Journey
-            <span className="text-3xl">›</span>
+            <span className="text-xl font-light leading-none sm:text-2xl" aria-hidden>
+              ›
+            </span>
           </Link>
         </div>
       </div>

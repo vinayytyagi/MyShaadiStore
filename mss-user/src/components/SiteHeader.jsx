@@ -46,8 +46,10 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
   const isJourneyActive = pathname?.startsWith("/journey/");
   const isShoppingActive =
     pathname?.startsWith("/shopping") || (shoppingStep && pathname === `/journey/${shoppingStep.slug}`);
-  const navLinkClass = "border-b-2 border-transparent pb-1 transition hover:text-slate-900";
-  const activeNavLinkClass = "border-b-2 border-[#ff4f86] pb-1 text-slate-800";
+  const navLinkClass =
+    "pb-0.5 text-slate-600 underline decoration-2 decoration-transparent underline-offset-[10px] transition-colors duration-200 hover:text-slate-900 hover:underline hover:decoration-[#ff4f86]";
+  const activeNavLinkClass =
+    "pb-0.5 text-slate-800 underline decoration-2 decoration-[#ff4f86] underline-offset-[10px]";
 
   function handleLogout() {
     clearAuthCookies();
@@ -62,7 +64,7 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/70 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-white/70 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-20">
         <Link href="/" className="flex cursor-pointer items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ff4f86] text-white">
@@ -184,7 +186,7 @@ export default function SiteHeader({ steps = [], initialUser = null }) {
               </Link>
               <Link
                 href="/signup"
-                className="cursor-pointer rounded-2xl bg-[#ff4f86] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,79,134,0.28)] transition hover:bg-[#ff3d79]"
+                className="signup-header-cta cursor-pointer rounded-2xl bg-[#ff4f86] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(255,79,134,0.28)] transition hover:bg-[#ff3d79] hover:text-white"
               >
                 Sign up
               </Link>

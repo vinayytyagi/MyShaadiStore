@@ -34,7 +34,7 @@ export default function EditJourneyStepPage() {
   const stepId = params.stepId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: "", subtitle: "", slug: "", order: 1, is_active: true, default_budget: 0, max_budget: 5000000 });
+  const [form, setForm] = useState({ title: "", subtitle: "", slug: "", is_active: true, default_budget: 0, max_budget: 5000000 });
 
   useEffect(() => {
     const token = getToken();
@@ -47,7 +47,6 @@ export default function EditJourneyStepPage() {
           title: d.title || "",
           subtitle: d.subtitle || "",
           slug: d.slug || "",
-          order: d.order ?? 1,
           is_active: d.is_active !== false,
           image_url: d.image_url || "",
           default_budget: d.default_budget || 0,
@@ -70,7 +69,6 @@ export default function EditJourneyStepPage() {
           title: form.title,
           subtitle: form.subtitle || null,
           slug: slugify(form.slug),
-          order: Number(form.order) || 0,
           image_url: form.image_url || null,
           default_budget: Number(form.default_budget) || 0,
           max_budget: Number(form.max_budget) || 0,
@@ -151,7 +149,7 @@ export default function EditJourneyStepPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 md:col-span-2">
                   <Label className="text-sm font-medium text-slate-700 ml-1">Slug *</Label>
                   <Input 
                     value={form.slug} 
@@ -159,16 +157,7 @@ export default function EditJourneyStepPage() {
                     required 
                     className="h-12 bg-slate-50 border-transparent focus:bg-white focus:border-pink-200 transition-all rounded-2xl font-mono text-pink-600"
                   />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-slate-700 ml-1">Order</Label>
-                  <Input 
-                    type="number" 
-                    value={form.order} 
-                    onChange={(e) => setForm((f) => ({ ...f, order: e.target.value }))} 
-                    className="h-12 bg-slate-50 border-transparent focus:bg-white focus:border-pink-200 transition-all rounded-2xl"
-                  />
+                  <p className="text-xs text-slate-500 ml-1">Sequence is changed from the journey steps list (reorder), not here.</p>
                 </div>
 
                 <div className="space-y-3">

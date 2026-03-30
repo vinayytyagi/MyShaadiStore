@@ -18,6 +18,7 @@ import {
   Shapes,
   Route,
   Wallet,
+  Images,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -51,6 +52,7 @@ const nav = [
     { href: "/budget", label: "Budget", icon: Wallet },
     { href: "/categories", label: "Categories", icon: Shapes },
     { href: "/items", label: "Products & Venues", icon: Package },
+    { href: "/slideshow", label: "Slideshow", icon: Images },
   ]},
   { group: "Sales & Inquiries", items: [
     { href: "/orders", label: "Orders", icon: ShoppingCart },
